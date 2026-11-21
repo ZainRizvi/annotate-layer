@@ -23,8 +23,7 @@ Never merge a PR, push to the default branch, or touch secrets.
    ```
 2. **Claim** a note before working on it: `gh issue edit <n> -R <repo> --add-label ann:working`.
    Its pin turns amber for the reviewer.
-3. **Read the context.** Parse the JSON in the `ann:v1` comment (`<` and `>` are escaped as
-   `<` and `>`):
+3. **Read the context.** Parse the JSON in the `ann:v1` comment (`<` and `>` are written as `\u003c` and `\u003e`; any JSON parser reads them back):
    - `anchor.url`, `anchor.path`: the page. `anchor.ann_id`: the `data-ann` name. Search the code
      for `data-ann="<ann_id>"`. `anchor.text_snippet`: text on the element. Search for it in
      components and content.

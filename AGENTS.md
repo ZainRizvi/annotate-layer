@@ -29,7 +29,7 @@ element's anchor and the context of the view. It talks to one REST endpoint thro
    - `endpoint`: the full URL of the notes collection, such as `${API_ORIGIN}/api/admin/annotations`.
      Use `client={createFetchClient({ endpoint, headers })}` for bearer-token auth.
    - `path`: a stable page key. Use the route path. Keep a query parameter in it only when the
-     parameter identifies different content (for example `/?c=<chatId>`). Drop tracking
+     parameter identifies different content (for example `/?tab=<id>`). Drop tracking
      parameters.
    - `context`: `() => ({ theme, lang, env, buildSha })`. `env` is a label such as
      `production`, `preview` or `development`. `buildSha` is the deployed commit, which lets an

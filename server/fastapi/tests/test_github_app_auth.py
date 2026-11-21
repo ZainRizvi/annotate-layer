@@ -7,10 +7,10 @@ from types import SimpleNamespace
 from typing import Any, List
 
 import httpx
+import jwt
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from jose import jwt
 
 REPO = "example/annotations"
 

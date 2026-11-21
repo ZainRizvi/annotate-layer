@@ -21,6 +21,8 @@
   ],
   "files": [
     "dist",
+    "docs",
+    "skills",
     "README.md",
     "AGENTS.md",
     "LICENSE"
@@ -31,11 +33,13 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./lazy": {
       "types": "./dist/lazy.d.ts",
-      "import": "./dist/lazy.js"
+      "import": "./dist/lazy.js",
+      "default": "./dist/lazy.js"
     },
     "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"

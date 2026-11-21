@@ -9,10 +9,10 @@ description = "FastAPI backend for annotate-layer that stores each note as a Git
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "fastapi",
+  "fastapi>=0.100",
   "pydantic>=2",
   "httpx",
-  "python-jose[cryptography]",
+  "PyJWT[crypto]>=2.8",
 ]
 
 [project.optional-dependencies]

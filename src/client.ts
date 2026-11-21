@@ -83,9 +83,10 @@ export function createFetchClient({
   const base = endpoint.replace(/\/+$/, '');
 
   async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+    // A failing `headers()` is the host's error, not a network one: let it through.
+    const extra = headers ? await headers() : {};
     let response: Response;
     try {
-      const extra = headers ? await headers() : {};
       response = await (fetchImpl ?? fetch)(url, {
         ...init,
         headers: { ...extra, ...(init.headers as Record<string, string> | undefined) },

@@ -82,14 +82,24 @@ loads with the layer, or globally. The stylesheet is about 17 KB (4 KB gzipped);
 | `longPress` | `{enabled, onChange}` | Optional. Lets the host keep the long-press toggle (for example on the reviewer's account). |
 | `storage` | `{get, set}` | Optional. Where done-pin view counts are kept. Defaults to `localStorage`. |
 
-For token auth: `client={createFetchClient({ endpoint, headers: () => ({ Authorization: `Bearer ${token()}` }) })}`.
+For token auth:
+
+```tsx
+<AnnotateLayer
+  client={createFetchClient({ endpoint, headers: () => ({ Authorization: `Bearer ${getToken()}` }) })}
+  path={path}
+  context={context}
+/>
+```
+
+The package is ESM only.
 
 ### Mark up your page (optional, recommended)
 
 Tag the surfaces people comment on, so notes find their element again after the page changes:
 
 ```html
-<article data-ann="answer">…</article>
+<article data-ann="product-card">…</article>
 <nav data-ann="sidebar" data-ann-unique>…</nav>   <!-- appears once; its text changes -->
 <form data-ann="composer" data-ann-dock>…</form>  <!-- docked at the bottom: the pin button sits above it -->
 ```

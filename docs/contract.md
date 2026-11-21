@@ -40,6 +40,7 @@ Errors use the shape `{"detail": string}` or, for validation, `{"detail": [{"msg
 | 401 / 403 | any | not allowed | "Sign in again as an admin" |
 | 404 | `annotation_not_found` | status change on a note that is gone | drops the note |
 | 422 | list or string | the payload breaks a limit below | the server's message |
+| 422 | `annotation_too_large` | the stored note would be too large (the reference server: an issue body over 60,000 characters) | the server's message |
 | 502 | short message | the storage backend failed | the message, with "Try again" |
 | 503 | `annotations_not_configured` | storage is not set up on this server | "not set up" |
 

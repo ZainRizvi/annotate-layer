@@ -23,7 +23,7 @@ export interface AnnotationDrawing {
 }
 
 export interface AnnotationAnchor {
-  /** The page key the note belongs to, e.g. `/c/8f2e41`. */
+  /** The page key the note belongs to, e.g. `/products/8f2e41`. */
   path: string;
   url: string;
   ann_id?: string;

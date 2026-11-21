@@ -9,6 +9,7 @@ GitHub as: open = open issue, working = open issue with label
 unusable App settings answer 503 ``annotations_not_configured``.
 """
 
+import logging
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
@@ -32,6 +33,8 @@ from annotate_github.schemas import (
     StatusChangeRequest,
 )
 from annotate_github.settings import AnnotateSettings
+
+logger = logging.getLogger("annotate_github")
 
 LIST_CACHE_SECONDS = 30.0
 CLOSED_WINDOW = timedelta(days=7)
@@ -70,7 +73,7 @@ def _not_configured() -> HTTPException:
 
 
 def _bad_gateway(e: gh.GitHubError, settings: AnnotateSettings) -> HTTPException:
-    print(f"[Annotations] {e}")
+    logger.warning(f"[Annotations] {e}")
     if e.status_code == 401:
         # The installation token was revoked (e.g. the App was reinstalled);
         # the next request fetches a new one.
@@ -84,7 +87,7 @@ async def _token(settings: AnnotateSettings) -> str:
     try:
         return await github_app_auth.installation_token(settings)
     except github_app_auth.AppNotConfigured as e:
-        print(f"[Annotations] {e}")
+        logger.warning(f"[Annotations] {e}")
         raise _not_configured() from e
     except gh.GitHubError as e:
         raise _bad_gateway(e, settings) from e
@@ -267,7 +270,7 @@ def create_router(
         body = issue_body.build_issue_body(meta, request.text)
         if len(body) > issue_body.MAX_BODY_CHARS:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                status_code=422,
                 detail="annotation_too_large",
             )
         token = await _token(current)

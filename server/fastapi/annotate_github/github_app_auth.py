@@ -13,8 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
-from jose import jwt
-from jose.exceptions import JOSEError
+import jwt
 
 from annotate_github.github_client import GitHubError, _request
 from annotate_github.settings import AnnotateSettings
@@ -63,7 +62,7 @@ def app_jwt(settings: AnnotateSettings, now: Optional[float] = None) -> str:
     }
     try:
         return jwt.encode(claims, _private_key(settings), algorithm="RS256")
-    except (JOSEError, ValueError, TypeError) as e:
+    except (jwt.PyJWTError, ValueError, TypeError) as e:
         raise AppNotConfigured(f"GitHub App private key cannot sign: {e}") from e
 
 

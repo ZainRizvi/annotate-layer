@@ -7,10 +7,13 @@ Each annotation is an issue labelled ``annotation`` (body format:
 tests replace them.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import quote
 
 import httpx
+
+logger = logging.getLogger("annotate_github")
 
 API_HOST = "api.github.com"
 API_BASE = f"https://{API_HOST}"
@@ -140,13 +143,13 @@ async def list_issues(
         if parsed_next.scheme != "https" or parsed_next.host != API_HOST:
             # The token goes with every request, so only GitHub's API host
             # is followed.
-            print(
+            logger.warning(
                 f"[Annotations] Warning: not following next-page link to "
                 f"another host: {next_url}"
             )
             return issues
         if page == MAX_LIST_PAGES:
-            print(
+            logger.warning(
                 f"[Annotations] Warning: more than {MAX_LIST_PAGES * 100} "
                 f"{state} annotation issues in {repo}; listing the newest "
                 f"{len(issues)} only"
@@ -195,7 +198,7 @@ async def ensure_labels(token: str, repo: str, labels: List[str]) -> None:
             )
         except GitHubError as e:
             if e.status_code != 422:
-                print(f"[Annotations] Could not create label {name!r}: {e}")
+                logger.warning(f"[Annotations] Could not create label {name!r}: {e}")
                 continue
         _ensured_labels.add((repo, name))
 

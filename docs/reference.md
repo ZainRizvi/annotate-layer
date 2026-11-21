@@ -10,18 +10,18 @@ Unsaved drafts (text, type and marks) are kept in `sessionStorage` under `ann:dr
 and come back when the same element is picked again; storage failures are ignored, and stored
 marks that fail validation are dropped. A draft comes back only onto its own element, by the same
 never-guess rule as notes: its stored anchor must resolve to exactly the picked element, and the
-anchor's `ancestor_snippets` must match (identical feedback rows differ only in the answer
+anchor's `ancestor_snippets` must match (identical action rows differ only in the card
 around them). The stored anchor's `ann_id` must be the picked element's `data-ann` name in every
-case, so two elements with the same text (the composer and its plan switcher) never share a
+case, so two elements with the same text (a form and its plan switcher) never share a
 draft; a `data-ann-unique` element is then identified by that name. A draft started while an
-answer was still streaming comes back after the answer has grown: the stored and current
+card's text was still streaming in comes back after the text has grown: the stored and current
 snippets only need to start one with the other. In that case the text alone must tell repeats
-apart (a stored introduction that several answers share gives no draft), since their position
+apart (a stored introduction that several cards share gives no draft), since their position
 could change. A draft that does not match
 stays stored for when its element is back on screen.
 
 The anchor, not the storage key, is a draft's identity. The key (name plus position among
-same-named elements) is where a draft is usually found; when an older answer loads above, the
+same-named elements) is where a draft is usually found; when older items load above, the
 picked element's draft is found among this page's other drafts and moved to its new key. A draft
 never takes over a key that holds another element's draft: it is written beside it instead.
 
@@ -29,9 +29,9 @@ never takes over a key that holds another element's draft: it is written beside 
 
 | Attribute | Meaning |
 |---|---|
-| `data-ann="<name>"` | A surface people comment on (`answer-body`, `citation-chip`, …). A pick lands on the nearest `[data-ann]` ancestor; the sheet shows the chain of `[data-ann]` ancestors as chips to widen the selection. Names may repeat (one per message); the note's text snippet and CSS path tell repeats apart. |
-| `data-ann-unique` | On a `[data-ann]` element that appears once per page and whose text changes (a sidebar, a composer, a settings modal): the name alone finds it again. |
-| `data-ann-dock` | A bar docked at the bottom of the screen (a composer). The pin button sits above it. |
+| `data-ann="<name>"` | A surface people comment on (`product-card`, `price-tag`, …). A pick lands on the nearest `[data-ann]` ancestor; the sheet shows the chain of `[data-ann]` ancestors as chips to widen the selection. Names may repeat (one per message); the note's text snippet and CSS path tell repeats apart. |
+| `data-ann-unique` | On a `[data-ann]` element that appears once per page and whose text changes (a sidebar, a bottom form, a settings modal): the name alone finds it again. |
+| `data-ann-dock` | A bar docked at the bottom of the screen (a chat input, a cookie banner). The pin button sits above it. |
 | `data-ann-ui` | The layer's own UI. Picks, long-press and the anchor search skip it. |
 
 A note is found again by its `data-ann` name, provided the element still contains the note's
@@ -41,15 +41,15 @@ search for the snippet.
 **The layer never guesses.** Each step takes an element only when exactly one candidate
 qualifies; otherwise the note shows as "moved" in the list instead of as a pin. Wherever it
 chooses among candidates, a candidate's text must still contain the whole stored snippet (up to
-200 characters, whitespace and case ignored), not just its start: answers often share a long
-introduction. Text that grew after the snippet (a streaming answer) still matches; text edited
+200 characters, whitespace and case ignored), not just its start: cards often share a long
+introduction. Text that grew after the snippet (text that is still streaming in) still matches; text edited
 within it does not. A sole `data-ann` match only needs the first 60 characters.
-- Repeats with the same name and text (every answer's feedback row) are told apart first by
-  `ancestor_snippets`, the text of their `[data-ann]` ancestors (the answer around the row), and
-  only then by the stored CSS path, which must select exactly one of them. A note on answer 2's
-  row therefore stays on it when answer 1 goes away or older answers load above, and shows as
-  moved once answer 2 is gone: every stored ancestor text needs a matching ancestor at its
-  position, so a row outside any message does not qualify. The path keeps at most 8 levels, so
+- Repeats with the same name and text (every card's action row) are told apart first by
+  `ancestor_snippets`, the text of their `[data-ann]` ancestors (the card around the row), and
+  only then by the stored CSS path, which must select exactly one of them. A note on card 2's
+  row therefore stays on it when card 1 goes away or older cards load above, and shows as
+  moved once card 2 is gone: every stored ancestor text needs a matching ancestor at its
+  position, so a row outside any card does not qualify. The path keeps at most 8 levels, so
   it can select several elements on a deep page. Notes saved without `ancestor_snippets` rely on the path alone.
 - The CSS-path step needs the path to select exactly one element that still has the snippet.
 - The snippet search takes the element whose text starts with the snippet and is shortest; of
@@ -90,7 +90,7 @@ each, 4 px apart; working notes come first, then open, then done. With more than
 two keep their pins and a "+N" pin opens the notes list for that element, which links back to all
 notes on the page. The row moves as a whole to stay on screen. A pin is hidden while something
 else (an open modal) covers its element's corner; the check looks through the layer's own pins,
-outlines and marks, which can sit over a small element such as a citation chip.
+outlines and marks, which can sit over a small element such as a price tag.
 
 **Done pins** wear out. A done pin counts as seen once per page view (the layer mounting, or
 `path` changing): the first time in it that the pin is on screen with a pin of its own. Re-renders,
@@ -150,7 +150,7 @@ When the element is picked (or Done is pressed), the layer records `context.view
 (`innerWidth`, `innerHeight`, `devicePixelRatio`), `context.scroll` (`scrollX`, `scrollY`), and
 for every element of the widen chain its anchor (`css_path`, `text_snippet`,
 `ancestor_snippets`) and `anchor.rect`. Save sends the selected element's pick-time anchor, and
-the draft stores it too, so a streaming answer, a reordered list, the on-screen keyboard or the
+the draft stores it too, so streaming text, a reordered list, the on-screen keyboard or the
 sheet's own scrolling do not show in the note.
 
 ## REST contract

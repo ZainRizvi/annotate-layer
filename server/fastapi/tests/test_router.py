@@ -836,7 +836,7 @@ class TestGitHubClient:
 
     @pytest.mark.asyncio
     async def test_list_issues_stops_after_five_pages_and_warns(
-        self, transport, capsys
+        self, transport, caplog
     ):
         next_url = "https://api.github.com/repositories/1/issues?page=next"
         for n in range(6):
@@ -850,9 +850,7 @@ class TestGitHubClient:
         result = await transport.gh.list_issues("tok", "o/r", "open")
         assert [i["number"] for i in result] == [0, 1, 2, 3, 4]
         assert len(transport.seen) == 5
-        assert (
-            "Warning: more than 500 open annotation issues" in capsys.readouterr().out
-        )
+        assert "Warning: more than 500 open annotation issues" in caplog.text
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -863,7 +861,7 @@ class TestGitHubClient:
         ],
     )
     async def test_list_issues_ignores_next_link_off_github(
-        self, transport, capsys, next_url
+        self, transport, caplog, next_url
     ):
         transport.responses.append(
             httpx.Response(
@@ -875,7 +873,7 @@ class TestGitHubClient:
         result = await transport.gh.list_issues("tok", "o/r", "open")
         assert [i["number"] for i in result] == [1]
         assert len(transport.seen) == 1
-        assert "not following next-page link" in capsys.readouterr().out
+        assert "not following next-page link" in caplog.text
 
 
 def _drawing(strokes: Optional[List[Any]] = None) -> Dict[str, Any]:

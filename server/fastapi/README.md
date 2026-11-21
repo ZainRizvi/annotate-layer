@@ -6,7 +6,7 @@ GitHub App, so notes outlive the environment they were written in and agents
 can read them with `gh`.
 
 The package (import name `annotate_github`) depends only on `fastapi`,
-`pydantic`, `httpx` and `python-jose`. It does not import the host app; the
+`pydantic`, `httpx` and `PyJWT`. It does not import the host app; the
 host supplies authentication and settings through callbacks.
 
 Install from this directory with `pip install .` (or `uv pip install .`).
