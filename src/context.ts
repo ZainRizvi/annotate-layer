@@ -15,7 +15,7 @@ export interface PickSnapshot {
   /**
    * Anchor of each element of the pick chain, in chain order: the note
    * describes the page as it was picked, not as it is when Save is pressed
-   * (a streaming answer, a reordered list).
+   * (streaming text, a reordered list).
    */
   anchors: AnnotationAnchor[];
 }

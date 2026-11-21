@@ -38,7 +38,7 @@ function sameMap(a: AnchorMap, b: AnchorMap): boolean {
  * again when the notes change and, debounced, when the page's DOM changes.
  * Notes still missing get their snippet search again once the page has
  * changed, at most once per SNIPPET_RETRY_MS, so an element that renders
- * late (a lazily loaded answer) is found.
+ * late (a lazily loaded item) is found.
  */
 export function useAnchoredNotes(notes: AnnotationItem[]): AnchorMap {
   const [anchors, setAnchors] = useState<AnchorMap>(() => new Map());

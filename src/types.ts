@@ -33,7 +33,7 @@ export interface AnnotationAnchor {
   /**
    * Text of the element's `[data-ann]` ancestors, innermost first (at most 6,
    * each at most 200 characters). Tells apart repeats whose own text is
-   * identical, such as every answer's feedback row. `null` from the server
+   * identical, such as every card's action row. `null` from the server
    * for notes saved without it.
    */
   ancestor_snippets?: string[] | null;

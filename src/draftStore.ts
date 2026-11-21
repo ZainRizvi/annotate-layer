@@ -22,7 +22,7 @@ export interface NoteDraft {
   drawing?: AnnotationDrawing;
   /**
    * The element's anchor when the sheet opened, as a saved note stores it.
-   * Repeats with identical text (every answer's feedback row) share an index
+   * Repeats with identical text (every card's action row) share an index
    * key once rows shift; the anchor's ancestor text tells them apart.
    */
   anchor?: AnnotationAnchor;
@@ -52,17 +52,17 @@ function isAnchor(value: unknown): value is AnnotationAnchor {
 function draftBelongsTo(anchor: unknown, el: Element, grown: boolean): boolean {
   if (!isAnchor(anchor) || (anchor.ann_id ?? null) !== el.getAttribute('data-ann')) return false;
   if (el.hasAttribute(UNIQUE_ATTR)) return true;
-  // A draft started on a half-streamed answer stored only its first words,
+  // A draft started on half-streamed text stored only its first words,
   // which repeats may share (a common introduction). Then the text must tell
   // the repeats apart: their position alone could hand the draft to another
-  // answer after a reorder.
+  // item after a reorder.
   return findAnchor(anchor, document, { pathTieBreak: !grown }) === el;
 }
 
 const PREFIX = 'ann:draft:';
 
 /**
- * One draft per page and element instance. Names such as `answer-body` and
+ * One draft per page and element instance. Names such as `product-card` and
  * `citation-chip` repeat once per message, so a tagged element is keyed by its
  * name plus its position among same-named elements; an untagged one by its
  * CSS path. Read once when the sheet opens: the DOM keeps changing after.
@@ -79,7 +79,7 @@ export function draftKey(path: string, el: Element): string {
 /**
  * The draft stored as `raw`, if it parses and was written for `el`. The
  * snippet check is only a cheap precheck for compatible growth (a draft
- * started while the answer was still streaming); `draftBelongsTo` decides
+ * started while its text was still streaming in); `draftBelongsTo` decides
  * identity.
  */
 function draftFor(raw: string | null, snippet: string, el: Element): NoteDraft | null {
@@ -129,7 +129,7 @@ function pageDraftKeys(path: string, except: string): string[] {
 /**
  * The storage key for a sheet opening on `el`, and the draft to restore.
  * The stored anchor is the draft's identity; the key (name plus index) is
- * only where it is usually found. When `el` moved (an older answer loaded
+ * only where it is usually found. When `el` moved (an older item loaded
  * above it), its draft is found under another of this page's keys and moved
  * to the current one, unless that key holds another element's draft: then
  * the draft keeps its own key. A sheet with no draft never takes a key that

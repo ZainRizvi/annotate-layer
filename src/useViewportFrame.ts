@@ -6,7 +6,7 @@ import { isInLayerUI } from './picker';
 /**
  * Re-measure overlays at most once per animation frame, only when something
  * moved: the page scrolled or resized, the keyboard moved the visual viewport,
- * the DOM changed (a streaming answer, a drawer opening), or a CSS transition
+ * the DOM changed (streaming text, a drawer opening), or a CSS transition
  * or animation finished (the sidebar's slide, a modal's zoom), so pins settle
  * on an element's final position rather than where it started. No timers run,
  * so an idle page costs nothing, and nothing is scheduled while the tab is

@@ -58,8 +58,12 @@ const Annotate = lazy(() => import('./Annotate'));
 )}
 ```
 
-In Next.js, use `next/dynamic(() => import('./Annotate'), { ssr: false })` instead of `lazy`. If
-you don't want a wrapper file, use the small `lazy` entry, which loads the layer on first use:
+Wrap it in an error boundary of your own, so a failed download (offline, a stale chunk after a
+deploy) cannot take down the page. In Next.js, use `next/dynamic(() => import('./Annotate'), { ssr: false })`
+instead of `lazy`.
+
+Or use the small `lazy` entry. It loads the layer on first use, renders nothing if the download
+fails, and tries again the next time it is enabled:
 
 ```tsx
 import { createLazyAnnotateLayer } from '@zainrizvi/annotate-layer/lazy';

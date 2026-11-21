@@ -14,7 +14,7 @@ const CSS_PATH_MAX_DEPTH = 8;
 /**
  * Leading snippet characters compared for a sole `data-ann` match, which
  * needs no telling apart. Choosing among several candidates compares the
- * whole stored snippet: answers often share a long introduction.
+ * whole stored snippet: cards often share a long introduction.
  */
 const SNIPPET_KEY_LENGTH = 60;
 /** Snippet search is skipped below this length: too many false matches. */
@@ -124,7 +124,7 @@ type SnippetMatch = 'full' | 'lead';
 
 /**
  * Whether two snippets of one element can come from the same text at two
- * moments: once normalized, one starts with the other (an answer that kept
+ * moments: once normalized, one starts with the other (text that kept
  * streaming, or one re-rendered shorter).
  */
 export function snippetsCompatible(a: string, b: string): boolean {
@@ -141,7 +141,7 @@ function snippetKey(snippet: string, match: SnippetMatch = 'full'): string {
 /**
  * Whether the element's text still holds the snippet. The snippet is the
  * element's first 200 characters when it was picked, so text that grew since
- * (a streaming answer) still holds it, and text edited within those
+ * (streaming text) still holds it, and text edited within those
  * characters does not. `includes` rather than `startsWith` because the
  * snippet comes from rendered text and `textContent` also has hidden text.
  */
@@ -320,14 +320,14 @@ export function findAnchor(
         return only;
       }
     } else if (candidates.length > 1) {
-      // Own text first, then the text around it (the answer a feedback row
+      // Own text first, then the text around it (the card an action row
       // sits in), and only then the positional CSS path.
       const matching = candidates.filter(
         (el) => snippetMatches(el, anchor.text_snippet) && ancestorsMatch(el, anchor.ancestor_snippets)
       );
       if (matching.length === 1) return matching[0];
       if (matching.length > 1) {
-        // Same name and same text (e.g. every answer's feedback row): the
+        // Same name and same text (e.g. every card's action row): the
         // stored CSS path tells the repeats apart. Unless it selects exactly
         // one of them, any pick would be a guess: the note shows as moved.
         if (options.pathTieBreak === false) return null;
