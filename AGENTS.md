@@ -151,7 +151,9 @@ tests) together.
 
 ## Releasing
 
-Merging to main releases. When CI passes on a main commit, `.github/workflows/publish.yml` bumps
-the minor version, pushes the version commit and tag, publishes to npm through trusted
-publishing (no npm token in the repo) and creates the GitHub release. Don't bump the version in a
-PR. Published versions are immutable; fix forward with another merge.
+Versions follow semver strictly, and merging to main releases. Squash-merge PRs with a
+conventional-commit title. The rules for titles and the release each one makes are in
+[`scripts/release-type.ts`](scripts/release-type.ts); CI checks PR titles against them. When CI
+passes on main, `.github/workflows/publish.yml` bumps the version, pushes the version commit and
+tag, publishes to npm through trusted publishing (no npm token in the repo) and creates the GitHub
+release. Don't bump the version in a PR. Published versions are immutable; fix forward.
