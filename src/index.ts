@@ -1,9 +1,9 @@
 export {
-  FixThis,
-  type FixThisOptions,
-  type FixThisProps,
-  type FixThisSource,
-} from './FixThis';
+  Fixt,
+  type FixtOptions,
+  type FixtProps,
+  type FixtSource,
+} from './Fixt';
 export {
   AnnotateError,
   annotationErrorMessage,

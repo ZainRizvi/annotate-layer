@@ -1,6 +1,6 @@
 ---
 name: annotation-triage
-description: Scheduled triage of on-site feedback left with fixthis and stored as GitHub issues. Claims new notes, finds the element in the code, and opens a fix PR, asks a question, answers, or closes duplicates. Use for a recurring "check feedback" routine or when asked to work through annotation issues.
+description: Scheduled triage of on-site feedback left with fixt and stored as GitHub issues. Claims new notes, finds the element in the code, and opens a fix PR, asks a question, answers, or closes duplicates. Use for a recurring "check feedback" routine or when asked to work through annotation issues.
 ---
 
 # Annotation triage

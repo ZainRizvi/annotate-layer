@@ -49,7 +49,7 @@ function pick() {
   fireEvent.click(document.getElementById('p')!, MAC ? { metaKey: true } : { ctrlKey: true });
 }
 
-describe('FixThis dismissal and drafts', () => {
+describe('Fixt dismissal and drafts', () => {
   let app: ReturnType<typeof appEscapeListener>;
 
   beforeEach(() => {
@@ -828,7 +828,7 @@ describe('FixThis dismissal and drafts', () => {
   });
 });
 
-describe('FixThis note loading', () => {
+describe('Fixt note loading', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     listAnnotations.mockReset();
@@ -860,7 +860,7 @@ describe('FixThis note loading', () => {
   });
 });
 
-describe('FixThis keyboard', () => {
+describe('Fixt keyboard', () => {
   const originalRect = Element.prototype.getBoundingClientRect;
   const vvListeners: Record<string, () => void> = {};
   let sheetTop = 500;

@@ -6,7 +6,7 @@ import React from 'react';
 import { AnnotateError } from '../src/client';
 import { LONG_PRESS_MS } from '../src/useLongPress';
 import { fakeClient, hostContext, makeLayer } from './helpers';
-import { FixThis } from '../src/FixThis';
+import { Fixt } from '../src/Fixt';
 
 const client = fakeClient();
 const listAnnotations = client.list;
@@ -26,7 +26,7 @@ async function openMenu() {
   await userEvent.click(await screen.findByRole('button', { name: /Annotations,/ }));
 }
 
-describe('FixThis', () => {
+describe('Fixt', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     localStorage.clear();
@@ -227,7 +227,7 @@ describe('FixThis', () => {
     try {
       const onChange = vi.fn();
       const { rerender } = render(
-        <FixThis client={client} path="/" context={hostContext} longPress={{ enabled: false, onChange }} />
+        <Fixt client={client} path="/" context={hostContext} longPress={{ enabled: false, onChange }} />
       );
       expect(longPressOpensNote()).toBe(false);
 
@@ -238,7 +238,7 @@ describe('FixThis', () => {
       expect(onChange).toHaveBeenCalledWith(true);
 
       rerender(
-        <FixThis client={client} path="/" context={hostContext} longPress={{ enabled: true, onChange }} />
+        <Fixt client={client} path="/" context={hostContext} longPress={{ enabled: true, onChange }} />
       );
       expect(longPressOpensNote()).toBe(true);
     } finally {

@@ -1,14 +1,14 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { createLazyFixThis, type FixThisModule } from '../src/lazy';
-import { FixThis } from '../src/FixThis';
+import { createLazyFixt, type FixtModule } from '../src/lazy';
+import { Fixt } from '../src/Fixt';
 import { hostContext } from './helpers';
 
-describe('createLazyFixThis', () => {
+describe('createLazyFixt', () => {
   it('loads nothing and renders nothing while the viewer is not allowed', async () => {
-    const load = vi.fn(async (): Promise<FixThisModule> => ({ FixThis }));
-    const Lazy = createLazyFixThis(load);
+    const load = vi.fn(async (): Promise<FixtModule> => ({ Fixt }));
+    const Lazy = createLazyFixt(load);
     const { container } = render(<Lazy enabled={false} endpoint="/n" path="/" context={hostContext} />);
     await new Promise((r) => setTimeout(r, 10));
     expect(load).not.toHaveBeenCalled();
@@ -19,8 +19,8 @@ describe('createLazyFixThis', () => {
   it('loads the layer once it is enabled, and only once', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    const load = vi.fn(async (): Promise<FixThisModule> => ({ FixThis }));
-    const Lazy = createLazyFixThis(load);
+    const load = vi.fn(async (): Promise<FixtModule> => ({ Fixt }));
+    const Lazy = createLazyFixt(load);
     const props = { endpoint: '/api/notes', path: '/', context: hostContext };
     const { rerender } = render(<Lazy enabled={false} {...props} />);
     rerender(<Lazy enabled {...props} />);
@@ -38,10 +38,10 @@ describe('createLazyFixThis', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
     const silence = vi.spyOn(console, 'error').mockImplementation(() => {});
     const load = vi
-      .fn<() => Promise<FixThisModule>>()
+      .fn<() => Promise<FixtModule>>()
       .mockRejectedValueOnce(new Error('chunk failed'))
-      .mockResolvedValue({ FixThis });
-    const Lazy = createLazyFixThis(load);
+      .mockResolvedValue({ Fixt });
+    const Lazy = createLazyFixt(load);
     const onError = vi.fn();
     const props = { endpoint: '/api/notes', path: '/', context: hostContext, onError };
     const { rerender } = render(

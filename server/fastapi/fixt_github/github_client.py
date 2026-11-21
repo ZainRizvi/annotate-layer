@@ -1,7 +1,7 @@
 """GitHub issues as storage for annotations.
 
 Each annotation is an issue labelled ``annotation`` (body format:
-``fixthis_github/issue_body.py``). These HTTP helpers (``create_issue``,
+``fixt_github/issue_body.py``). These HTTP helpers (``create_issue``,
 ``get_issue``, ``list_issues``, ``set_issue_state``, ``remove_label``,
 ``ensure_labels``) are the only code that talks to the GitHub issues API;
 tests replace them.
@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 import httpx
 
-logger = logging.getLogger("fixthis_github")
+logger = logging.getLogger("fixt_github")
 
 API_HOST = "api.github.com"
 API_BASE = f"https://{API_HOST}"
