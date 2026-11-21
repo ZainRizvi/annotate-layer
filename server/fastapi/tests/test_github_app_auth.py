@@ -1,4 +1,4 @@
-"""fixt_github.github_app_auth with an httpx MockTransport and a real RSA key."""
+"""fixfast_github.github_app_auth with an httpx MockTransport and a real RSA key."""
 
 import json
 from dataclasses import replace
@@ -40,9 +40,9 @@ def key_pair():
 
 @pytest.fixture()
 def app(monkeypatch, key_pair):
-    from fixt_github import AnnotateSettings
-    from fixt_github import github_app_auth as auth
-    from fixt_github import github_client as gh
+    from fixfast_github import AnnotateSettings
+    from fixfast_github import github_app_auth as auth
+    from fixfast_github import github_client as gh
 
     settings = AnnotateSettings(
         app_id="12345",

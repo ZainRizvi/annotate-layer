@@ -1,6 +1,6 @@
 import React from 'react';
 import { vi } from 'vitest';
-import { Fixt } from '../src/Fixt';
+import { FixFast } from '../src/FixFast';
 import type { AnnotateHostContext } from '../src/types';
 
 /** A client whose three calls are mocks; `list` resolves to no notes by default. */
@@ -15,6 +15,6 @@ export const hostContext = (): AnnotateHostContext => ({ theme: 'dark', lang: 'e
 /** Renders the layer for `nav.path`, so `rerender(<Layer …/>)` after changing it navigates. */
 export function makeLayer(client: ReturnType<typeof fakeClient>, nav: { path: string }) {
   return function Layer() {
-    return <Fixt client={client} path={nav.path} context={hostContext} />;
+    return <FixFast client={client} path={nav.path} context={hostContext} />;
   };
 }

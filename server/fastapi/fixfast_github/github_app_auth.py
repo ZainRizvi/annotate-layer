@@ -15,8 +15,8 @@ from typing import Dict, Optional, Tuple
 
 import jwt
 
-from fixt_github.github_client import GitHubError, _request
-from fixt_github.settings import AnnotateSettings
+from fixfast_github.github_client import GitHubError, _request
+from fixfast_github.settings import AnnotateSettings
 
 # GitHub rejects App JWTs that live longer than 10 minutes; ``iat`` is
 # backdated a minute to allow for clock drift.

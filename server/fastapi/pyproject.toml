@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "fixt-github"
+name = "fixfast-github"
 version = "0.1.0"
-description = "FastAPI backend for fixt that stores each note as a GitHub issue via a GitHub App."
+description = "FastAPI backend for fixfast that stores each note as a GitHub issue via a GitHub App."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -24,7 +24,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["fixt_github"]
+packages = ["fixfast_github"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

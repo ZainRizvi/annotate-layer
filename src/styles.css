@@ -1,4 +1,4 @@
-/* fixt. Every colour, font, radius, shadow and timing comes from a
+/* fixfast. Every colour, font, radius, shadow and timing comes from a
    public `--ann-*` variable with a built-in fallback; set those on `.ann-root`
    or an ancestor to theme the layer. Colours that take an alpha are space-
    separated RGB triplets, e.g. `--ann-accent: 124 58 237`. */

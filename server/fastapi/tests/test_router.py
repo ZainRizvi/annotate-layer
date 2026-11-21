@@ -1,6 +1,6 @@
 """The annotation router through a TestClient, with GitHub replaced by a fake.
 
-The fake stands in for the HTTP helpers of fixt_github.github_client
+The fake stands in for the HTTP helpers of fixfast_github.github_client
 (create_issue, get_issue, list_issues, set_issue_state, remove_label,
 ensure_labels), so no test reaches the network. The ``env`` fixture mounts
 ``create_router`` with a fake ``require_admin`` dependency that can be toggled
@@ -152,17 +152,17 @@ class FakeGitHub:
 
 @pytest.fixture()
 def env(monkeypatch):
-    import fixt_github
-    from fixt_github import (
+    import fixfast_github
+    from fixfast_github import (
         AnnotateSettings,
         create_router,
         github_app_auth,
         issue_body,
     )
-    from fixt_github import github_client as gh
-    from fixt_github import router as ann_router
+    from fixfast_github import github_client as gh
+    from fixfast_github import router as ann_router
 
-    fixt_github.reset_caches()
+    fixfast_github.reset_caches()
 
     fake = FakeGitHub(gh, issue_body)
     for name in (
@@ -229,7 +229,7 @@ def env(monkeypatch):
             monkeypatch=monkeypatch,
         )
     finally:
-        fixt_github.reset_caches()
+        fixfast_github.reset_caches()
 
 
 def _meta(path: str = "/c/8f2e41", **extra: Any) -> Dict[str, Any]:
@@ -690,7 +690,7 @@ class TestStatus:
 
 class TestBodyFormat:
     def test_round_trips_and_handles_crlf(self):
-        from fixt_github import issue_body as gh
+        from fixfast_github import issue_body as gh
 
         meta = _meta(css_path="a | b", text_snippet="q`x")
         body = gh.build_issue_body(meta, "line one\n\nline two")
@@ -701,7 +701,7 @@ class TestBodyFormat:
         assert parsed[1] == "line one\n\nline two"
 
     def test_hand_edited_body_without_table_keeps_text(self):
-        from fixt_github import issue_body as gh
+        from fixfast_github import issue_body as gh
 
         block = json.dumps({"path": "/"})
         parsed = gh.parse_issue_body(f"<!-- ann:v1 {block} -->\nJust words")
@@ -713,7 +713,7 @@ class TestGitHubClient:
 
     @pytest.fixture()
     def transport(self, monkeypatch):
-        from fixt_github import github_client as gh
+        from fixfast_github import github_client as gh
 
         seen: List[httpx.Request] = []
         responses: List[Any] = []
@@ -1111,12 +1111,12 @@ class TestStandalone:
     def standalone(self, monkeypatch):
         from fastapi import Header, HTTPException
 
-        import fixt_github
-        from fixt_github import AnnotateSettings, create_router, issue_body
-        from fixt_github import github_app_auth as auth
-        from fixt_github import github_client as gh
+        import fixfast_github
+        from fixfast_github import AnnotateSettings, create_router, issue_body
+        from fixfast_github import github_app_auth as auth
+        from fixfast_github import github_client as gh
 
-        fixt_github.reset_caches()
+        fixfast_github.reset_caches()
         fake = FakeGitHub(gh, issue_body)
         for name in (
             "create_issue",
@@ -1169,7 +1169,7 @@ class TestStandalone:
             monkeypatch=monkeypatch,
             AnnotateSettings=AnnotateSettings,
         )
-        fixt_github.reset_caches()
+        fixfast_github.reset_caches()
 
     def test_uses_host_admin_author_and_settings(self, standalone):
         client = standalone.client
@@ -1211,7 +1211,7 @@ class TestStandalone:
         assert standalone.fake.calls[-1][2] == "acme/moved"
 
     def test_unconfigured_settings_give_503(self, standalone):
-        from fixt_github import router as ann_router
+        from fixfast_github import router as ann_router
 
         standalone.monkeypatch.setattr(
             ann_router.github_app_auth,
@@ -1222,7 +1222,7 @@ class TestStandalone:
             app_id="", private_key="", repo="acme/x"
         )
         app = FastAPI()
-        from fixt_github import create_router
+        from fixfast_github import create_router
 
         app.include_router(
             create_router(

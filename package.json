@@ -1,16 +1,16 @@
 {
-  "name": "fixt",
+  "name": "fixfast",
   "version": "0.3.0",
   "description": "A React overlay that lets authorized reviewers point at any part of a live site, draw on it and leave a note that the host's backend stores (for example as a GitHub issue).",
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZainRizvi/fixt.git"
+    "url": "git+https://github.com/ZainRizvi/fixfast.git"
   },
-  "homepage": "https://github.com/ZainRizvi/fixt#readme",
+  "homepage": "https://github.com/ZainRizvi/fixfast#readme",
   "bugs": {
-    "url": "https://github.com/ZainRizvi/fixt/issues"
+    "url": "https://github.com/ZainRizvi/fixfast/issues"
   },
   "keywords": [
     "react",

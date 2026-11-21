@@ -1,4 +1,4 @@
-# fixt
+# fixfast
 
 Leave feedback on a live website by pointing at it. Reviewers you choose (admins, testers) long-press,
 ⌘-click or draw on any part of a page and write a note. Each note lands in a store the site's
@@ -21,7 +21,7 @@ turns green.
 The package is on npm:
 
 ```bash
-npm install fixt
+npm install fixfast
 ```
 
 Peer dependencies: `react` and `react-dom` 19.
@@ -32,12 +32,12 @@ Mount it only for users who may annotate, and load it lazily so nobody else down
 
 ```tsx
 // Annotate.tsx: the only file that imports the layer.
-import 'fixt/styles.css';
-import { Fixt } from 'fixt';
+import 'fixfast/styles.css';
+import { FixFast } from 'fixfast';
 
 export default function Annotate({ path }: { path: string }) {
   return (
-    <Fixt
+    <FixFast
       endpoint="https://api.example.com/api/admin/annotations"
       path={path} // notes are grouped by this page key
       context={() => ({ theme: 'light', lang: 'en', env: 'production', buildSha: 'abc1234' })}
@@ -66,13 +66,13 @@ Or use the small `lazy` entry. It loads the layer on first use, renders nothing 
 fails, and tries again the next time it is enabled:
 
 ```tsx
-import { createLazyFixt } from 'fixt/lazy';
-const Annotate = createLazyFixt(() => import('fixt'));
+import { createLazyFixFast } from 'fixfast/lazy';
+const Annotate = createLazyFixFast(() => import('fixfast'));
 
 <Annotate enabled={!!user?.isAdmin} endpoint="/api/admin/annotations" path={pathname} context={ctx} />
 ```
 
-The styles still need importing (`fixt/styles.css`) somewhere that only
+The styles still need importing (`fixfast/styles.css`) somewhere that only
 loads with the layer, or globally. The stylesheet is about 17 KB (4 KB gzipped); the script about 24 KB gzipped.
 
 ### Props
@@ -89,7 +89,7 @@ loads with the layer, or globally. The stylesheet is about 17 KB (4 KB gzipped);
 For token auth:
 
 ```tsx
-<Fixt
+<FixFast
   client={createFetchClient({ endpoint, headers: () => ({ Authorization: `Bearer ${getToken()}` }) })}
   path={path}
   context={context}

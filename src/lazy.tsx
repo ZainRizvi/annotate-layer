@@ -1,12 +1,12 @@
 import React, { Component, lazy, Suspense, useMemo, type ComponentType, type ReactNode } from 'react';
-import type { FixtProps } from './Fixt';
+import type { FixFastProps } from './FixFast';
 
-/** What `load` resolves to: the package's main entry, or any module exporting `Fixt`. */
-export interface FixtModule {
-  Fixt: ComponentType<FixtProps>;
+/** What `load` resolves to: the package's main entry, or any module exporting `FixFast`. */
+export interface FixFastModule {
+  FixFast: ComponentType<FixFastProps>;
 }
 
-export type LazyFixtProps = FixtProps & {
+export type LazyFixFastProps = FixFastProps & {
   /**
    * Whether the viewer may annotate. While false, nothing is downloaded,
    * rendered or attached to the page.
@@ -40,26 +40,26 @@ class LayerBoundary extends Component<BoundaryProps, { failed: boolean }> {
   }
 }
 
-const logError = (error: unknown) => console.error('fixt failed to load', error);
+const logError = (error: unknown) => console.error('fixfast failed to load', error);
 
 /**
  * Returns a component that downloads the layer only when `enabled` is true.
  *
- * `load` must be written in the host's code, as `() => import('fixt')`,
+ * `load` must be written in the host's code, as `() => import('fixfast')`,
  * so the host's bundler puts the layer (and its CSS, when the loaded module imports it) in a
  * separate chunk. Call this once at module scope, not during render.
  *
  * If loading fails, the layer renders nothing and `onError` is called. Turning `enabled` off
  * and on again, or remounting, downloads it again.
  */
-export function createLazyFixt(
-  load: () => Promise<FixtModule>
-): ComponentType<LazyFixtProps> {
-  let Lazy: ComponentType<FixtProps> | null = null;
+export function createLazyFixFast(
+  load: () => Promise<FixFastModule>
+): ComponentType<LazyFixFastProps> {
+  let Lazy: ComponentType<FixFastProps> | null = null;
   const getLazy = () => {
     Lazy ??= lazy(async () => {
       try {
-        return { default: (await load()).Fixt };
+        return { default: (await load()).FixFast };
       } catch (error) {
         Lazy = null;
         throw error;
@@ -68,16 +68,16 @@ export function createLazyFixt(
     return Lazy;
   };
 
-  function LazyFixt({ enabled, fallback = null, onError = logError, ...props }: LazyFixtProps) {
+  function LazyFixFast({ enabled, fallback = null, onError = logError, ...props }: LazyFixFastProps) {
     const Layer = useMemo(() => (enabled ? getLazy() : null), [enabled]);
     if (!Layer) return null;
     return (
       <LayerBoundary onError={onError}>
         <Suspense fallback={fallback}>
-          <Layer {...(props as FixtProps)} />
+          <Layer {...(props as FixFastProps)} />
         </Suspense>
       </LayerBoundary>
     );
   }
-  return LazyFixt;
+  return LazyFixFast;
 }

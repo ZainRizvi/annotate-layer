@@ -4,7 +4,7 @@ A standalone FastAPI package; it imports nothing from the host app. See
 ``README.md``.
 """
 
-from fixt_github.router import create_router, reset_caches
-from fixt_github.settings import AnnotateSettings
+from fixfast_github.router import create_router, reset_caches
+from fixfast_github.settings import AnnotateSettings
 
 __all__ = ["AnnotateSettings", "create_router", "reset_caches"]

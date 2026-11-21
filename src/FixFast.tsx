@@ -42,7 +42,7 @@ import { NoteSheet, NotesListSheet } from './NotesSheets';
 import Pins from './Pins';
 
 /** Where notes are read and written: a REST endpoint, or a client of the host's own. */
-export type FixtSource =
+export type FixFastSource =
   | {
       /**
        * URL of the host's annotations collection (see the REST contract). The
@@ -54,9 +54,9 @@ export type FixtSource =
     }
   | { client: AnnotateClient; endpoint?: never };
 
-export type FixtProps = FixtSource & FixtOptions;
+export type FixFastProps = FixFastSource & FixFastOptions;
 
-export interface FixtOptions {
+export interface FixFastOptions {
   /** The page key notes are grouped by; changing it reloads the notes. */
   path: string;
   /** Theme, language, environment and build of the host page. Called on render and on save. */
@@ -164,14 +164,14 @@ function pinButtonBottom(): string {
  * note sheets and pins. The host decides who sees it; the layer renders for
  * whoever it is mounted for.
  */
-export function Fixt({
+export function FixFast({
   client: hostClient,
   endpoint,
   path,
   context,
   longPress,
   storage = defaultStorage,
-}: FixtProps) {
+}: FixFastProps) {
   const client = useMemo(
     () => hostClient ?? createFetchClient({ endpoint: endpoint as string }),
     [hostClient, endpoint]

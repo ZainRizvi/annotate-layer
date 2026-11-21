@@ -1,9 +1,9 @@
 export {
-  Fixt,
-  type FixtOptions,
-  type FixtProps,
-  type FixtSource,
-} from './Fixt';
+  FixFast,
+  type FixFastOptions,
+  type FixFastProps,
+  type FixFastSource,
+} from './FixFast';
 export {
   AnnotateError,
   annotationErrorMessage,
