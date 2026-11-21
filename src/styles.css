@@ -1,0 +1,666 @@
+/* Annotate layer. Every colour, font, radius, shadow and timing comes from a
+   public `--ann-*` variable with a built-in fallback; set those on `.ann-root`
+   or an ancestor to theme the layer. Colours that take an alpha are space-
+   separated RGB triplets, e.g. `--ann-accent: 124 58 237`. */
+
+html.ann-pressing,
+html.ann-pressing * {
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+.ann-root {
+  --_ann-accent: var(--ann-accent, 167 139 250);       /* #A78BFA */
+  --_ann-accent-ink: var(--ann-accent-ink, 20 12 40);
+  --_ann-open: var(--ann-open, 96 165 250);            /* #60A5FA */
+  --_ann-working: var(--ann-working, 251 191 36);      /* #FBBF24 */
+  --_ann-done: var(--ann-done, 30 215 96);             /* #1ED760 */
+  --_ann-mark: var(--ann-mark, 239 68 68);             /* drawn strokes, #EF4444 */
+  --_ann-panel: var(--ann-panel, #141414);
+  --_ann-sunken: var(--ann-sunken, #0a0a0a);
+  --_ann-ink: var(--ann-ink, #ffffff);
+  --_ann-muted: var(--ann-muted, #a0a0a0);
+  --_ann-line: var(--ann-line, #262626);
+  --_ann-font: var(--ann-font, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  --_ann-radius-surface: var(--ann-radius-surface, 16px);
+  --_ann-radius-control: var(--ann-radius-control, 8px);
+  --_ann-shadow-card: var(--ann-shadow-card, 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.35));
+  --_ann-shadow-modal: var(--ann-shadow-modal, 0 4px 16px rgb(0 0 0 / 0.5), 0 16px 48px rgb(0 0 0 / 0.6));
+  --_ann-ease: var(--ann-ease, cubic-bezier(0.215, 0.61, 0.355, 1));
+  --_ann-dur-fast: var(--ann-dur-fast, 150ms);
+  --_ann-dur-base: var(--ann-dur-base, 220ms);
+  --_ann-z: var(--ann-z, 2147483000);
+  font-family: var(--_ann-font);
+  line-height: 1.4;
+  color: var(--_ann-ink);
+}
+
+.ann-root[data-theme='light'] {
+  --_ann-accent: var(--ann-accent, 124 58 237);        /* #7C3AED */
+  --_ann-accent-ink: var(--ann-accent-ink, 255 255 255);
+  --_ann-open: var(--ann-open, 37 99 235);
+  --_ann-working: var(--ann-working, 217 119 6);
+  --_ann-done: var(--ann-done, 21 122 63);
+  --_ann-mark: var(--ann-mark, 220 38 38);
+  --_ann-panel: var(--ann-panel, #ffffff);
+  --_ann-sunken: var(--ann-sunken, #f6f6f5);
+  --_ann-ink: var(--ann-ink, #201e1b);
+  --_ann-muted: var(--ann-muted, #5c574e);
+  --_ann-line: var(--ann-line, #e5e1d8);
+  --_ann-shadow-card: var(--ann-shadow-card, 0 1px 2px rgb(32 30 27 / 0.05), 0 2px 8px rgb(32 30 27 / 0.06));
+  --_ann-shadow-modal: var(--ann-shadow-modal, 0 4px 16px rgb(32 30 27 / 0.1), 0 16px 48px rgb(32 30 27 / 0.18));
+}
+
+/* The layer does not rely on the host's reset. */
+.ann-root,
+.ann-root *,
+.ann-root *::before,
+.ann-root *::after {
+  box-sizing: border-box;
+}
+
+.ann-root button,
+.ann-root a {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ann-root :focus-visible {
+  outline: 2px solid rgb(var(--_ann-accent));
+  outline-offset: 2px;
+}
+
+/* --- highlight + pins ---------------------------------------------- */
+
+.ann-highlight {
+  position: fixed;
+  z-index: calc(var(--_ann-z) - 2);
+  pointer-events: none;
+  border-radius: 10px;
+  outline: 2px solid rgb(var(--_ann-accent));
+  background: rgb(var(--_ann-accent) / 0.10);
+  transition: left var(--_ann-dur-fast) var(--_ann-ease), top var(--_ann-dur-fast) var(--_ann-ease),
+    width var(--_ann-dur-fast) var(--_ann-ease), height var(--_ann-dur-fast) var(--_ann-ease);
+}
+
+.ann-highlight[data-variant='hover'] {
+  outline-style: dashed;
+  background: transparent;
+}
+
+.ann-highlight[data-variant='flash'] {
+  animation: ann-flash 1.4s var(--_ann-ease) both;
+}
+
+@keyframes ann-flash {
+  0%, 40% { background: rgb(var(--_ann-accent) / 0.28); }
+  100% { background: rgb(var(--_ann-accent) / 0); outline-color: rgb(var(--_ann-accent) / 0.2); }
+}
+
+.ann-pin {
+  position: fixed;
+  z-index: calc(var(--_ann-z) - 1);
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ann-pin-more-label {
+  min-width: 22px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: rgb(var(--_ann-accent));
+  color: rgb(var(--_ann-accent-ink));
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.55), 0 2px 8px rgb(0 0 0 / 0.4);
+}
+
+.ann-pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50% 50% 50% 2px;
+  background: var(--ann-pin);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.55), 0 0 0 3px rgb(var(--_ann-accent) / 0.9), 0 2px 8px rgb(0 0 0 / 0.4);
+}
+
+/* --- pin button + menu ---------------------------------------------- */
+
+.ann-fab-wrap {
+  position: fixed;
+  z-index: var(--_ann-z);
+  inset-inline-end: calc(14px + env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.ann-fab {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgb(var(--_ann-accent) / 0.55);
+  background: color-mix(in srgb, var(--_ann-panel) 88%, transparent);
+  backdrop-filter: blur(12px);
+  color: rgb(var(--_ann-accent)) !important;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--_ann-shadow-card);
+  touch-action: manipulation;
+}
+
+.ann-fab[data-ring='open'] { box-shadow: 0 0 0 1px rgb(var(--_ann-open)), var(--_ann-shadow-card); }
+.ann-fab[data-ring='working'] { box-shadow: 0 0 0 1px rgb(var(--_ann-working)), var(--_ann-shadow-card); }
+
+.ann-fab-count {
+  position: absolute;
+  top: -6px;
+  inset-inline-end: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: rgb(var(--_ann-accent));
+  color: rgb(var(--_ann-accent-ink));
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+
+.ann-fab-alert {
+  position: absolute;
+  bottom: -5px;
+  inset-inline-end: -5px;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: rgb(var(--_ann-working));
+  color: #000;
+  font-size: 12px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+
+.ann-menu {
+  min-width: 232px;
+  padding: 6px;
+  border-radius: var(--_ann-radius-surface);
+  border: 1px solid var(--_ann-line);
+  background: var(--_ann-panel);
+  box-shadow: var(--_ann-shadow-modal);
+  animation: ann-rise var(--_ann-dur-base) var(--_ann-ease) both;
+}
+
+.ann-menu-item {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--_ann-radius-control);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ann-menu-item svg { color: rgb(var(--_ann-accent)); flex-shrink: 0; }
+.ann-menu-item:active { background: rgb(var(--_ann-accent) / 0.12); }
+@media (hover: hover) and (pointer: fine) {
+  .ann-menu-item:hover { background: rgb(var(--_ann-accent) / 0.10); }
+}
+
+.ann-menu-count {
+  margin-inline-start: auto;
+  color: var(--_ann-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ann-menu-error { margin: 4px 8px 8px; }
+/* Focused on a pointer open only so the arrow keys work; items show their own ring. */
+.ann-menu-list:focus { outline: none; }
+
+/* --- tap-to-pick banner ------------------------------------------- */
+
+.ann-banner {
+  position: fixed;
+  z-index: var(--_ann-z);
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  inset-inline: 12px;
+  margin-inline: auto;
+  max-width: 420px;
+  min-height: 48px;
+  padding-inline: 16px 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  background: rgb(var(--_ann-accent));
+  color: rgb(var(--_ann-accent-ink));
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: var(--_ann-shadow-modal);
+  animation: ann-drop var(--_ann-dur-base) var(--_ann-ease) both;
+}
+
+.ann-banner-cancel {
+  margin-inline-start: auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(var(--_ann-accent-ink) / 0.14);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* --- sheet --------------------------------------------------------- */
+
+.ann-sheet {
+  --ann-kb: 0px;
+  --ann-vvh: 100dvh;
+  position: fixed;
+  z-index: var(--_ann-z);
+  inset-inline: 0;
+  bottom: var(--ann-kb);
+  max-height: calc(var(--ann-vvh) * 0.62);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px 20px 0 0;
+  border: 1px solid var(--_ann-line);
+  border-bottom: 0;
+  border-top: 2px solid rgb(var(--_ann-accent));
+  background: var(--_ann-panel);
+  box-shadow: 0 -12px 40px rgb(0 0 0 / 0.45);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: ann-rise var(--_ann-dur-base) var(--_ann-ease) both;
+  transition: bottom 120ms var(--_ann-ease);
+}
+
+.ann-sheet[data-dragging] { transition: none; }
+/* Focused only so focus is inside the dialog; its controls show their own ring. */
+.ann-sheet:focus { outline: none; }
+.ann-sheet[data-keyboard] { padding-bottom: 0; }
+
+.ann-discard {
+  margin: 4px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-inline-start: 2px solid rgb(var(--_ann-working));
+  background: rgb(var(--_ann-working) / 0.10);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ann-discard .ann-actions { margin-top: 8px; }
+
+.ann-btn-danger {
+  border-color: rgb(var(--_ann-working));
+  color: rgb(var(--_ann-working)) !important;
+}
+
+.ann-sheet-head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 8px 8px 16px;
+  touch-action: none;
+}
+
+.ann-grab {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  margin-left: -18px;
+  border-radius: 2px;
+  background: var(--_ann-line);
+}
+
+.ann-sheet-title { flex: 1; min-width: 0; }
+
+.ann-sheet-heading {
+  display: block;
+  padding-top: 10px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ann-sheet-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px 16px;
+}
+
+.ann-icon-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--_ann-muted) !important;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .ann-sheet {
+    top: 0;
+    bottom: 0;
+    inset-inline: auto 0;
+    width: 384px;
+    max-height: none;
+    border-radius: 0;
+    border: 0;
+    border-inline-start: 1px solid var(--_ann-line);
+    border-top: 2px solid rgb(var(--_ann-accent));
+    box-shadow: var(--_ann-shadow-modal);
+    padding-bottom: 0;
+    animation-name: ann-slide;
+  }
+  .ann-grab { display: none; }
+  .ann-sheet-head { padding-top: 14px; touch-action: auto; }
+}
+
+/* --- chips + form -------------------------------------------------- */
+
+.ann-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.ann-chain-sep { color: var(--_ann-muted); }
+
+.ann-chip {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--_ann-line);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ann-chain-chip {
+  min-height: 36px;
+  padding: 0 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  position: relative;
+}
+
+/* 36 px visual, 44 px hit area. */
+.ann-chain-chip::after {
+  content: '';
+  position: absolute;
+  inset: -4px -2px;
+}
+
+.ann-chip[aria-pressed='true'],
+.ann-chip[aria-checked='true'] {
+  border-color: rgb(var(--_ann-accent));
+  background: rgb(var(--_ann-accent) / 0.16);
+  color: rgb(var(--_ann-accent)) !important;
+}
+
+.ann-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+
+.ann-textarea {
+  width: 100%;
+  min-height: 104px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--_ann-line);
+  background: var(--_ann-sunken);
+  color: var(--_ann-ink);
+  font: inherit;
+  /* 16 px stops iOS from zooming the page on focus. */
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.ann-textarea:focus {
+  outline: none;
+  border-color: rgb(var(--_ann-accent));
+  box-shadow: 0 0 0 3px rgb(var(--_ann-accent) / 0.2);
+}
+
+.ann-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ann-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--_ann-line);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ann-btn-primary {
+  border-color: rgb(var(--_ann-accent));
+  background: rgb(var(--_ann-accent));
+  color: rgb(var(--_ann-accent-ink)) !important;
+}
+
+.ann-btn:disabled { opacity: 0.45; cursor: default; }
+
+.ann-error {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-inline-start: 2px solid rgb(var(--_ann-working));
+  background: rgb(var(--_ann-working) / 0.10);
+  font-size: 14px;
+}
+
+.ann-empty { color: var(--_ann-muted); font-size: 14px; margin: 8px 0; }
+
+/* --- notes list ---------------------------------------------------- */
+
+.ann-list { list-style: none; margin: 0; padding: 0; }
+.ann-list-all { margin: 0 0 8px; }
+.ann-sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+.ann-row {
+  border-inline-start: 1px solid rgb(var(--_ann-open));
+  border-bottom: 1px solid var(--_ann-line);
+}
+.ann-row[data-status='working'] { border-inline-start-color: rgb(var(--_ann-working)); }
+.ann-row[data-status='done'] { border-inline-start-color: rgb(var(--_ann-done)); }
+
+.ann-row-head {
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ann-row-title {
+  font-size: 15px;
+  font-weight: 600;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ann-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  color: var(--_ann-muted);
+  font-size: 12px;
+}
+
+.ann-moved {
+  color: rgb(var(--_ann-working));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ann-detail { padding: 0 12px 12px; }
+.ann-row .ann-detail { padding-top: 2px; }
+
+.ann-detail-text {
+  margin: 0 0 8px;
+  font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ann-status-tag { font-weight: 700; color: rgb(var(--_ann-open)); }
+.ann-status-tag[data-status='working'] { color: rgb(var(--_ann-working)); }
+.ann-status-tag[data-status='done'] { color: rgb(var(--_ann-done)); }
+
+/* --- toast --------------------------------------------------------- */
+
+.ann-toast {
+  position: fixed;
+  z-index: var(--_ann-z);
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  inset-inline: 0;
+  margin-inline: auto;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--_ann-accent) / 0.5);
+  background: var(--_ann-panel);
+  box-shadow: var(--_ann-shadow-modal);
+  font-size: 14px;
+  font-weight: 600;
+  animation: ann-drop var(--_ann-dur-base) var(--_ann-ease) both;
+}
+
+.ann-toast a { color: rgb(var(--_ann-accent)) !important; }
+
+@keyframes ann-rise { from { transform: translateY(16px); opacity: 0; } }
+@keyframes ann-drop { from { transform: translateY(-12px); opacity: 0; } }
+@keyframes ann-slide { from { transform: translateX(24px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ann-root *,
+  .ann-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* --- drawing ------------------------------------------------------- */
+
+.ann-marks {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: calc(var(--_ann-z) - 2);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.ann-mark-stroke {
+  fill: none;
+  stroke: rgb(var(--_ann-mark));
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ann-draw .ann-marks { z-index: calc(var(--_ann-z) - 1); }
+
+.ann-draw-surface {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--_ann-z) - 1);
+  touch-action: none;
+  overscroll-behavior: contain;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.ann-draw-bar {
+  position: fixed;
+  z-index: var(--_ann-z);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  inset-inline: max(12px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-right, 0px));
+  margin-inline: auto;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--_ann-radius-surface);
+  border: 1px solid var(--_ann-line);
+  border-top: 2px solid rgb(var(--_ann-mark));
+  background: var(--_ann-panel);
+  box-shadow: var(--_ann-shadow-modal);
+  animation: ann-rise var(--_ann-dur-base) var(--_ann-ease) both;
+}
+
+.ann-notice {
+  margin: 0 0 10px;
+  color: var(--_ann-muted);
+  font-size: 13px;
+}
