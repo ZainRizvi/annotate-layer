@@ -1,4 +1,4 @@
-import { commitReleaseType, releaseType } from '../scripts/release-type';
+import { commitReleaseType, isValidTitle, releaseType, titleHelp } from '../scripts/release-type';
 
 describe('commitReleaseType', () => {
   it.each([
@@ -38,5 +38,20 @@ describe('releaseType', () => {
   it('uses an exact version from a Release-As footer', () => {
     expect(releaseType(['fix: a', 'chore: cut 1.0\n\nRelease-As: 1.0.0'])).toBe('1.0.0');
     expect(releaseType(['docs: mention Release-As: 2.0.0 inline'])).toBe('none');
+  });
+});
+
+describe('isValidTitle', () => {
+  it.each(['feat: add x', 'fix(client): y', 'feat!: z', 'ci(publish)!: w'])('accepts %s', (t) => {
+    expect(isValidTitle(t)).toBe(true);
+  });
+
+  it.each(['Rename stuff', 'fix:nospace', 'feature: x', 'feat(): x', 'release: 1.0.0'])('rejects %s', (t) => {
+    expect(isValidTitle(t)).toBe(false);
+  });
+
+  it('lists every type in the help text', () => {
+    expect(titleHelp()).toMatch(/feat\s+minor/);
+    expect(titleHelp()).toMatch(/docs\s+no release/);
   });
 });

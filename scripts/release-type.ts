@@ -1,15 +1,16 @@
 /**
- * Picks the semver bump for a release from the conventional-commit messages merged since the
- * last one:
- * - `type!:` or a `BREAKING CHANGE:` footer → major
- * - `feat:` → minor
- * - `fix:` or `perf:` → patch
- * - anything else (docs, ci, test, refactor, build, chore, style) → none, no release
+ * The release rules: how a commit title maps to a semver bump. This file is the only place they
+ * are defined. CI checks PR titles against it, and the publish workflow picks each release's
+ * version with it.
  *
- * A `Release-As: x.y.z` footer overrides the bump with that exact version (for example the
- * first 1.0.0).
+ * A title is a conventional-commit header, `type(scope)?!?: summary`, using a type from
+ * `BUMP_BY_TYPE`. `!` after the type, or a `BREAKING CHANGE:` footer, makes it a major release. A
+ * release takes the largest bump among the commits merged since the last tag; `none` everywhere
+ * means no release. A `Release-As: x.y.z` footer sets that exact version instead.
  *
- * CLI: `git log --format=%B%x00 <range> | node scripts/release-type.ts` prints the bump or version.
+ * CLI:
+ *   git log --format=%B%x00 v1.2.3..HEAD | node scripts/release-type.ts   → major|minor|patch|none|x.y.z
+ *   node scripts/release-type.ts --check-title "<PR title>"              → exits 1 and lists the types
  */
 import { pathToFileURL } from 'node:url';
 
@@ -17,19 +18,39 @@ export type ReleaseType = 'major' | 'minor' | 'patch' | 'none';
 /** A bump, or an exact version from a `Release-As` footer. */
 export type Release = ReleaseType | `${number}.${number}.${number}`;
 
-const HEADER = /^(\w+)(\([^)]*\))?(!)?:/;
+export const BUMP_BY_TYPE = {
+  feat: 'minor',
+  fix: 'patch',
+  perf: 'patch',
+  docs: 'none',
+  test: 'none',
+  refactor: 'none',
+  build: 'none',
+  ci: 'none',
+  chore: 'none',
+  style: 'none',
+  revert: 'none',
+} as const satisfies Record<string, ReleaseType>;
+
+const HEADER = /^(\w+)(\([^)]+\))?(!)?: \S/;
 const BREAKING_FOOTER = /^BREAKING[ -]CHANGE:/m;
 const RELEASE_AS = /^Release-As:\s*v?(\d+\.\d+\.\d+)\s*$/im;
 const RANK: Record<ReleaseType, number> = { none: 0, patch: 1, minor: 2, major: 3 };
 
+function knownType(type: string): type is keyof typeof BUMP_BY_TYPE {
+  return Object.hasOwn(BUMP_BY_TYPE, type);
+}
+
+export function isValidTitle(title: string): boolean {
+  const header = HEADER.exec(title);
+  return !!header && knownType(header[1]);
+}
+
 export function commitReleaseType(message: string): ReleaseType {
   const header = HEADER.exec(message.trim());
-  if (!header) return 'none';
-  const [, type, , bang] = header;
-  if (bang || BREAKING_FOOTER.test(message)) return 'major';
-  if (type === 'feat') return 'minor';
-  if (type === 'fix' || type === 'perf') return 'patch';
-  return 'none';
+  if (!header || !knownType(header[1])) return 'none';
+  if (header[3] || BREAKING_FOOTER.test(message)) return 'major';
+  return BUMP_BY_TYPE[header[1]];
 }
 
 export function releaseType(messages: string[]): Release {
@@ -43,9 +64,29 @@ export function releaseType(messages: string[]): Release {
   }, 'none');
 }
 
+export function titleHelp(): string {
+  const rows = Object.entries(BUMP_BY_TYPE).map(
+    ([type, bump]) => `  ${type.padEnd(9)}${bump === 'none' ? 'no release' : bump}`
+  );
+  return [
+    'A PR title must be `type: summary` or `type(scope): summary`. Types and the release each makes:',
+    ...rows,
+    'Add `!` after the type (`feat!: …`) for a breaking change: a major release.',
+    'Rules: scripts/release-type.ts',
+  ].join('\n');
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-  const messages = Buffer.concat(chunks).toString('utf8').split('\0').filter((m) => m.trim());
-  console.log(releaseType(messages));
+  if (process.argv[2] === '--check-title') {
+    const title = process.argv[3] ?? '';
+    if (!isValidTitle(title)) {
+      console.error(`Not a valid PR title: ${JSON.stringify(title)}\n\n${titleHelp()}`);
+      process.exit(1);
+    }
+  } else {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+    const messages = Buffer.concat(chunks).toString('utf8').split('\0').filter((m) => m.trim());
+    console.log(releaseType(messages));
+  }
 }

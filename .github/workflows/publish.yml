@@ -1,11 +1,8 @@
 name: Publish
 
-# Releases main after CI passes, following semver. The bump comes from the
-# conventional-commit titles merged since the last tag (scripts/release-type.ts):
-# breaking (`type!:` or a `BREAKING CHANGE:` footer) → major, `feat` → minor,
-# `fix`/`perf` → patch, anything else → no release. A `Release-As: x.y.z` footer
-# sets the version exactly. The version commit is pushed
-# with GITHUB_TOKEN, which does not start CI again, so publishing does not loop.
+# Releases main after CI passes. scripts/release-type.ts picks the version from the
+# commit titles merged since the last tag. The version commit is pushed with GITHUB_TOKEN,
+# which does not start CI again, so publishing does not loop.
 
 on:
   workflow_run:
@@ -63,7 +60,7 @@ jobs:
           echo "Changes since $last: $kind"
           echo "kind=$kind" >> "$GITHUB_OUTPUT"
           if [ "$kind" = none ]; then
-            echo "::notice::No feat, fix, perf or breaking change since $last; nothing to release."
+            echo "::notice::Nothing since $last makes a release (scripts/release-type.ts)."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
