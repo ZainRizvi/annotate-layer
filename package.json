@@ -1,6 +1,6 @@
 {
   "name": "fixthis",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A React overlay that lets authorized reviewers point at any part of a live site, draw on it and leave a note that the host's backend stores (for example as a GitHub issue).",
   "license": "MIT",
   "type": "module",
