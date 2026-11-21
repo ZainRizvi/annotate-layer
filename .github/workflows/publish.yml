@@ -1,0 +1,89 @@
+name: Publish
+
+# Every commit on main that passes CI ships as a new minor version on npm.
+# The version commit is pushed with GITHUB_TOKEN, which does not start CI
+# again, so publishing does not loop.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write # push the version commit and tag, create the release
+  id-token: write # npm trusted publishing (OIDC), no npm token stored
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Skip if main has moved on
+        id: current
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$TESTED_SHA" ]; then
+            echo "::notice::main is past $TESTED_SHA; the CI run for the newer commit publishes it."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v5
+        if: steps.current.outputs.skip != 'true'
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        if: steps.current.outputs.skip != 'true'
+        run: |
+          npm install -g npm@^11.5.1 # trusted publishing needs npm 11.5.1 or later
+          npm ci
+
+      - name: Bump the minor version
+        if: steps.current.outputs.skip != 'true'
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          version=$(npm version minor -m "release: %s")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Push the version commit and tag
+        if: steps.current.outputs.skip != 'true'
+        id: push
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          if git push --atomic origin HEAD:main "$VERSION"; then
+            exit 0
+          fi
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD~1)" ]; then
+            echo "::notice::main moved while publishing; the CI run for the newer commit publishes it."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          exit 1
+
+      - name: Publish to npm
+        if: steps.current.outputs.skip != 'true' && steps.push.outputs.skip != 'true'
+        run: npm publish --provenance --access public
+
+      - name: Create the GitHub release
+        if: steps.current.outputs.skip != 'true' && steps.push.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: gh release create "$VERSION" --generate-notes --verify-tag
