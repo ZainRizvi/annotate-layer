@@ -6,7 +6,7 @@ import React from 'react';
 import { AnnotateError } from '../src/client';
 import { LONG_PRESS_MS } from '../src/useLongPress';
 import { fakeClient, hostContext, makeLayer } from './helpers';
-import { AnnotateLayer } from '../src/AnnotateLayer';
+import { FixThis } from '../src/FixThis';
 
 const client = fakeClient();
 const listAnnotations = client.list;
@@ -26,7 +26,7 @@ async function openMenu() {
   await userEvent.click(await screen.findByRole('button', { name: /Annotations,/ }));
 }
 
-describe('AnnotateLayer', () => {
+describe('FixThis', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     localStorage.clear();
@@ -227,7 +227,7 @@ describe('AnnotateLayer', () => {
     try {
       const onChange = vi.fn();
       const { rerender } = render(
-        <AnnotateLayer client={client} path="/" context={hostContext} longPress={{ enabled: false, onChange }} />
+        <FixThis client={client} path="/" context={hostContext} longPress={{ enabled: false, onChange }} />
       );
       expect(longPressOpensNote()).toBe(false);
 
@@ -238,7 +238,7 @@ describe('AnnotateLayer', () => {
       expect(onChange).toHaveBeenCalledWith(true);
 
       rerender(
-        <AnnotateLayer client={client} path="/" context={hostContext} longPress={{ enabled: true, onChange }} />
+        <FixThis client={client} path="/" context={hostContext} longPress={{ enabled: true, onChange }} />
       );
       expect(longPressOpensNote()).toBe(true);
     } finally {

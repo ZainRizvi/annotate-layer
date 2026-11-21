@@ -10,7 +10,7 @@ import secrets
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from annotate_github import AnnotateSettings, create_router
+from fixthis_github import AnnotateSettings, create_router
 
 
 def require_admin(authorization: str = Header(default="")) -> str:

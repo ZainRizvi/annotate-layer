@@ -1,11 +1,11 @@
-# annotate-github-fastapi
+# fixthis-github
 
-A FastAPI backend for [annotate-layer](../../README.md): admin notes pinned to
+A FastAPI backend for [fixthis](../../README.md): admin notes pinned to
 parts of a website. Each note is a GitHub issue in one repository, written by a
 GitHub App, so notes outlive the environment they were written in and agents
 can read them with `gh`.
 
-The package (import name `annotate_github`) depends only on `fastapi`,
+The package (import name `fixthis_github`) depends only on `fastapi`,
 `pydantic`, `httpx` and `PyJWT`. It does not import the host app; the
 host supplies authentication and settings through callbacks.
 
@@ -24,7 +24,7 @@ Install from this directory with `pip install .` (or `uv pip install .`).
 ## Usage
 
 ```python
-from annotate_github import AnnotateSettings, create_router
+from fixthis_github import AnnotateSettings, create_router
 
 router = create_router(
     require_admin=get_current_admin,  # FastAPI dependency returning the admin

@@ -1,12 +1,12 @@
-# AGENTS.md: integrating annotate-layer
+# AGENTS.md: integrating fixthis
 
-This file is for coding agents adding annotate-layer to a site, or maintaining this repo.
+This file is for coding agents adding fixthis to a site, or maintaining this repo.
 [README.md](README.md) is the human overview, [docs/contract.md](docs/contract.md) is the REST
 contract, and [docs/reference.md](docs/reference.md) covers the UI's behaviour.
 
 ## What it does and doesn't do
 
-**Does:** the frontend. It provides a React 19 overlay (`AnnotateLayer`) with the pin button,
+**Does:** the frontend. It provides a React 19 overlay (`FixThis`) with the pin button,
 pick by long-press or ⌘-click, pen drawing, the note sheet, pins on noted elements, the
 per-page notes list, mark done and reopen, and drafts kept in `sessionStorage`. It records the
 element's anchor and the context of the view. It talks to one REST endpoint through
@@ -23,9 +23,9 @@ element's anchor and the context of the view. It talks to one REST endpoint thro
 
 ## Integration checklist
 
-1. **Install** the release tarball (see README → Install). Commit the lockfile.
+1. **Install** `fixthis` from npm (see README → Install). Commit the lockfile.
 2. **Write one host wrapper**, say `Annotate.tsx`. It is the only file that imports the package
-   and `@zainrizvi/annotate-layer/styles.css`. It supplies:
+   and `fixthis/styles.css`. It supplies:
    - `endpoint`: the full URL of the notes collection, such as `${API_ORIGIN}/api/admin/annotations`.
      Use `client={createFetchClient({ endpoint, headers })}` for bearer-token auth.
    - `path`: a stable page key. Use the route path. Keep a query parameter in it only when the
@@ -40,8 +40,8 @@ element's anchor and the context of the view. It talks to one REST endpoint thro
    - Next.js: `const Annotate = dynamic(() => import('./Annotate'), { ssr: false })`, then
      `{user?.is_admin && <Annotate />}`.
    - Other React apps: `React.lazy(() => import('./Annotate'))` inside `<Suspense>`, or
-     `createLazyAnnotateLayer(() => import('@zainrizvi/annotate-layer'))` from
-     `@zainrizvi/annotate-layer/lazy`, with `enabled={isAdmin}`.
+     `createLazyFixThis(() => import('fixthis'))` from
+     `fixthis/lazy`, with `enabled={isAdmin}`.
    - Check: build the app and confirm the layer's code appears only in a separately loaded
      chunk. A guest's network panel should show no request for that chunk.
 4. **Theme**: map `--ann-*` variables to the host's design tokens on `.ann-root`
@@ -79,7 +79,7 @@ Rules a backend must follow:
 ### GitHub issues (reference: `server/fastapi`)
 
 ```python
-from annotate_github import AnnotateSettings, create_router
+from fixthis_github import AnnotateSettings, create_router
 
 app.include_router(create_router(
     require_admin=get_current_admin_user,          # your auth dependency; raises 401/403
@@ -141,8 +141,8 @@ is out of scope.
 | `src/` | The layer. `index.ts` is the main entry, `lazy.tsx` the gate entry, `styles.css` the stylesheet. |
 | `tests/` | Vitest and Testing Library tests (jsdom). `boundary.test.ts` enforces the import boundary. |
 | `docs/` | `contract.md` (REST), `reference.md` (behaviour). |
-| `server/fastapi/` | Reference GitHub-issue backend (Python package `annotate_github`). |
-| `skills/` | `integrate-annotate-layer` (for host repos) and `annotation-triage` (the monitoring agent). |
+| `server/fastapi/` | Reference GitHub-issue backend (Python package `fixthis_github`). |
+| `skills/` | `integrate-fixthis` (for host repos) and `annotation-triage` (the monitoring agent). |
 
 Working on this repo: run `npm run check` before committing. `src/` may import only `react`,
 `react-dom` and sibling files. ESLint and `tests/boundary.test.ts` enforce this. A change to the
@@ -151,6 +151,5 @@ tests) together.
 
 ## Releasing
 
-`npm version <x.y.z>`, then `npm pack`, then `gh release create v<x.y.z> zainrizvi-annotate-layer-<x.y.z>.tgz`.
-Hosts install the tarball URL. A release must never be replaced, because the host lockfile pins
-its integrity hash.
+`npm version <x.y.z>`, `git push --follow-tags`, then `npm publish`. CI must be green on the
+commit first. Published versions are immutable; fix forward with a new version.

@@ -1,4 +1,4 @@
-# annotate-layer
+# fixthis
 
 Leave feedback on a live website by pointing at it. Reviewers you choose (admins, testers) long-press,
 ⌘-click or draw on any part of a page and write a note. Each note lands in a store the site's
@@ -18,10 +18,10 @@ turns green.
 
 ## Install
 
-The package ships as a tarball on each GitHub release:
+The package is on npm:
 
 ```bash
-npm install https://github.com/ZainRizvi/annotate-layer/releases/download/v0.1.0/zainrizvi-annotate-layer-0.1.0.tgz
+npm install fixthis
 ```
 
 Peer dependencies: `react` and `react-dom` 19.
@@ -32,12 +32,12 @@ Mount it only for users who may annotate, and load it lazily so nobody else down
 
 ```tsx
 // Annotate.tsx: the only file that imports the layer.
-import '@zainrizvi/annotate-layer/styles.css';
-import { AnnotateLayer } from '@zainrizvi/annotate-layer';
+import 'fixthis/styles.css';
+import { FixThis } from 'fixthis';
 
 export default function Annotate({ path }: { path: string }) {
   return (
-    <AnnotateLayer
+    <FixThis
       endpoint="https://api.example.com/api/admin/annotations"
       path={path} // notes are grouped by this page key
       context={() => ({ theme: 'light', lang: 'en', env: 'production', buildSha: 'abc1234' })}
@@ -66,13 +66,13 @@ Or use the small `lazy` entry. It loads the layer on first use, renders nothing 
 fails, and tries again the next time it is enabled:
 
 ```tsx
-import { createLazyAnnotateLayer } from '@zainrizvi/annotate-layer/lazy';
-const Annotate = createLazyAnnotateLayer(() => import('@zainrizvi/annotate-layer'));
+import { createLazyFixThis } from 'fixthis/lazy';
+const Annotate = createLazyFixThis(() => import('fixthis'));
 
 <Annotate enabled={!!user?.isAdmin} endpoint="/api/admin/annotations" path={pathname} context={ctx} />
 ```
 
-The styles still need importing (`@zainrizvi/annotate-layer/styles.css`) somewhere that only
+The styles still need importing (`fixthis/styles.css`) somewhere that only
 loads with the layer, or globally. The stylesheet is about 17 KB (4 KB gzipped); the script about 24 KB gzipped.
 
 ### Props
@@ -89,7 +89,7 @@ loads with the layer, or globally. The stylesheet is about 17 KB (4 KB gzipped);
 For token auth:
 
 ```tsx
-<AnnotateLayer
+<FixThis
   client={createFetchClient({ endpoint, headers: () => ({ Authorization: `Bearer ${getToken()}` }) })}
   path={path}
   context={context}

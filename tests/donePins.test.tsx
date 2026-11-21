@@ -3,7 +3,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-import { AnnotateLayer } from '../src/AnnotateLayer';
+import { FixThis } from '../src/FixThis';
 import {
   DONE_PIN_KEEP_MS,
   DONE_PIN_MAX_VIEWS,
@@ -66,7 +66,7 @@ function page() {
 const client = fakeClient();
 
 function setup(storage: AnnotateStorage | undefined, path = '/a') {
-  const view = (p: string) => <AnnotateLayer client={client} path={p} context={hostContext} storage={storage} />;
+  const view = (p: string) => <FixThis client={client} path={p} context={hostContext} storage={storage} />;
   const result = render(view(path));
   return { ...result, navigate: (p: string) => result.rerender(view(p)) };
 }

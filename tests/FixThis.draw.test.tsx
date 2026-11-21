@@ -49,7 +49,7 @@ async function openDrawMode() {
   return screen.getByRole('toolbar', { name: 'Drawing' });
 }
 
-describe('AnnotateLayer drawing', () => {
+describe('FixThis drawing', () => {
   const originalElementsFromPoint = document.elementsFromPoint;
   let hitAt: Array<[number, number]>;
 

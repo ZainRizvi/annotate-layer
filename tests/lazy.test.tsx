@@ -1,14 +1,14 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { createLazyAnnotateLayer, type AnnotateLayerModule } from '../src/lazy';
-import { AnnotateLayer } from '../src/AnnotateLayer';
+import { createLazyFixThis, type FixThisModule } from '../src/lazy';
+import { FixThis } from '../src/FixThis';
 import { hostContext } from './helpers';
 
-describe('createLazyAnnotateLayer', () => {
+describe('createLazyFixThis', () => {
   it('loads nothing and renders nothing while the viewer is not allowed', async () => {
-    const load = vi.fn(async (): Promise<AnnotateLayerModule> => ({ AnnotateLayer }));
-    const Lazy = createLazyAnnotateLayer(load);
+    const load = vi.fn(async (): Promise<FixThisModule> => ({ FixThis }));
+    const Lazy = createLazyFixThis(load);
     const { container } = render(<Lazy enabled={false} endpoint="/n" path="/" context={hostContext} />);
     await new Promise((r) => setTimeout(r, 10));
     expect(load).not.toHaveBeenCalled();
@@ -19,8 +19,8 @@ describe('createLazyAnnotateLayer', () => {
   it('loads the layer once it is enabled, and only once', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    const load = vi.fn(async (): Promise<AnnotateLayerModule> => ({ AnnotateLayer }));
-    const Lazy = createLazyAnnotateLayer(load);
+    const load = vi.fn(async (): Promise<FixThisModule> => ({ FixThis }));
+    const Lazy = createLazyFixThis(load);
     const props = { endpoint: '/api/notes', path: '/', context: hostContext };
     const { rerender } = render(<Lazy enabled={false} {...props} />);
     rerender(<Lazy enabled {...props} />);
@@ -38,10 +38,10 @@ describe('createLazyAnnotateLayer', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
     const silence = vi.spyOn(console, 'error').mockImplementation(() => {});
     const load = vi
-      .fn<() => Promise<AnnotateLayerModule>>()
+      .fn<() => Promise<FixThisModule>>()
       .mockRejectedValueOnce(new Error('chunk failed'))
-      .mockResolvedValue({ AnnotateLayer });
-    const Lazy = createLazyAnnotateLayer(load);
+      .mockResolvedValue({ FixThis });
+    const Lazy = createLazyFixThis(load);
     const onError = vi.fn();
     const props = { endpoint: '/api/notes', path: '/', context: hostContext, onError };
     const { rerender } = render(

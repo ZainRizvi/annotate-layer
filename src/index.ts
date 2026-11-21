@@ -1,9 +1,9 @@
 export {
-  AnnotateLayer,
-  type AnnotateLayerOptions,
-  type AnnotateLayerProps,
-  type AnnotateLayerSource,
-} from './AnnotateLayer';
+  FixThis,
+  type FixThisOptions,
+  type FixThisProps,
+  type FixThisSource,
+} from './FixThis';
 export {
   AnnotateError,
   annotationErrorMessage,

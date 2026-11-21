@@ -2,10 +2,10 @@
 
 ``create_router`` builds the FastAPI router. Every route depends on the
 host's ``require_admin``. Issues live in the settings' repo with label
-``annotation`` (body format: ``annotate_github/issue_body.py``). Status maps to
+``annotation`` (body format: ``fixthis_github/issue_body.py``). Status maps to
 GitHub as: open = open issue, working = open issue with label
 ``ann:working``, done = closed issue. Requests authenticate as a GitHub App
-(``annotate_github/github_app_auth.py``). GitHub failures answer 502; missing or
+(``fixthis_github/github_app_auth.py``). GitHub failures answer 502; missing or
 unusable App settings answer 503 ``annotations_not_configured``.
 """
 
@@ -17,9 +17,9 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from pydantic import BaseModel, ValidationError
 
-from annotate_github import github_app_auth, issue_body
-from annotate_github import github_client as gh
-from annotate_github.schemas import (
+from fixthis_github import github_app_auth, issue_body
+from fixthis_github import github_client as gh
+from fixthis_github.schemas import (
     AncestorSnippets,
     AnnotationItem,
     AnnotationList,
@@ -32,9 +32,9 @@ from annotate_github.schemas import (
     Rect,
     StatusChangeRequest,
 )
-from annotate_github.settings import AnnotateSettings
+from fixthis_github.settings import AnnotateSettings
 
-logger = logging.getLogger("annotate_github")
+logger = logging.getLogger("fixthis_github")
 
 LIST_CACHE_SECONDS = 30.0
 CLOSED_WINDOW = timedelta(days=7)

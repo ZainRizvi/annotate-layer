@@ -49,7 +49,7 @@ function pick() {
   fireEvent.click(document.getElementById('p')!, MAC ? { metaKey: true } : { ctrlKey: true });
 }
 
-describe('AnnotateLayer dismissal and drafts', () => {
+describe('FixThis dismissal and drafts', () => {
   let app: ReturnType<typeof appEscapeListener>;
 
   beforeEach(() => {
@@ -828,7 +828,7 @@ describe('AnnotateLayer dismissal and drafts', () => {
   });
 });
 
-describe('AnnotateLayer note loading', () => {
+describe('FixThis note loading', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
     listAnnotations.mockReset();
@@ -860,7 +860,7 @@ describe('AnnotateLayer note loading', () => {
   });
 });
 
-describe('AnnotateLayer keyboard', () => {
+describe('FixThis keyboard', () => {
   const originalRect = Element.prototype.getBoundingClientRect;
   const vvListeners: Record<string, () => void> = {};
   let sheetTop = 500;
