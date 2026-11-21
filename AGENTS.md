@@ -151,5 +151,7 @@ tests) together.
 
 ## Releasing
 
-`npm version <x.y.z>`, `git push --follow-tags`, then `npm publish`. CI must be green on the
-commit first. Published versions are immutable; fix forward with a new version.
+Merging to main releases. When CI passes on a main commit, `.github/workflows/publish.yml` bumps
+the minor version, pushes the version commit and tag, publishes to npm through trusted
+publishing (no npm token in the repo) and creates the GitHub release. Don't bump the version in a
+PR. Published versions are immutable; fix forward with another merge.
