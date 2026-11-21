@@ -1,8 +1,11 @@
 name: Publish
 
-# Every commit on main that passes CI ships as a new minor version on npm.
-# The version commit is pushed with GITHUB_TOKEN, which does not start CI
-# again, so publishing does not loop.
+# Releases main after CI passes, following semver. The bump comes from the
+# conventional-commit titles merged since the last tag (scripts/release-type.ts):
+# breaking (`type!:` or a `BREAKING CHANGE:` footer) → major, `feat` → minor,
+# `fix`/`perf` → patch, anything else → no release. A `Release-As: x.y.z` footer
+# sets the version exactly. The version commit is pushed
+# with GITHUB_TOKEN, which does not start CI again, so publishing does not loop.
 
 on:
   workflow_run:
@@ -51,17 +54,32 @@ jobs:
           npm install -g npm@^11.5.1 # trusted publishing needs npm 11.5.1 or later
           npm ci
 
-      - name: Bump the minor version
+      - name: Choose the version bump
         if: steps.current.outputs.skip != 'true'
+        id: kind
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v[0-9]*')
+          kind=$(git log --format=%B%x00 "$last..HEAD" | node scripts/release-type.ts)
+          echo "Changes since $last: $kind"
+          echo "kind=$kind" >> "$GITHUB_OUTPUT"
+          if [ "$kind" = none ]; then
+            echo "::notice::No feat, fix, perf or breaking change since $last; nothing to release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump the version
+        if: steps.current.outputs.skip != 'true' && steps.kind.outputs.skip != 'true'
         id: bump
+        env:
+          KIND: ${{ steps.kind.outputs.kind }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          version=$(npm version minor -m "release: %s")
+          version=$(npm version "$KIND" -m "release: %s")
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Push the version commit and tag
-        if: steps.current.outputs.skip != 'true'
+        if: steps.current.outputs.skip != 'true' && steps.kind.outputs.skip != 'true'
         id: push
         env:
           VERSION: ${{ steps.bump.outputs.version }}
@@ -78,11 +96,11 @@ jobs:
           exit 1
 
       - name: Publish to npm
-        if: steps.current.outputs.skip != 'true' && steps.push.outputs.skip != 'true'
+        if: steps.current.outputs.skip != 'true' && steps.kind.outputs.skip != 'true' && steps.push.outputs.skip != 'true'
         run: npm publish --provenance --access public
 
       - name: Create the GitHub release
-        if: steps.current.outputs.skip != 'true' && steps.push.outputs.skip != 'true'
+        if: steps.current.outputs.skip != 'true' && steps.kind.outputs.skip != 'true' && steps.push.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.bump.outputs.version }}
