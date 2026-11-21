@@ -68,19 +68,14 @@ export function titleHelp(): string {
   const rows = Object.entries(BUMP_BY_TYPE).map(
     ([type, bump]) => `  ${type.padEnd(9)}${bump === 'none' ? 'no release' : bump}`
   );
-  return [
-    'A PR title must be `type: summary` or `type(scope): summary`. Types and the release each makes:',
-    ...rows,
-    'Add `!` after the type (`feat!: …`) for a breaking change: a major release.',
-    'Rules: scripts/release-type.ts',
-  ].join('\n');
+  return ['PR title: `type(scope)!: summary`. Scope is optional; `!` marks a breaking change (major).', ...rows].join('\n');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.argv[2] === '--check-title') {
     const title = process.argv[3] ?? '';
     if (!isValidTitle(title)) {
-      console.error(`Not a valid PR title: ${JSON.stringify(title)}\n\n${titleHelp()}`);
+      console.error(titleHelp());
       process.exit(1);
     }
   } else {
