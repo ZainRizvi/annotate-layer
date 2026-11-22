@@ -73,6 +73,30 @@ function errorFor(status: number, body: string): AnnotateError {
   return new AnnotateError('http', detail, status);
 }
 
+function unexpected(what: string): AnnotateError {
+  return new AnnotateError('http', `unexpected response: ${what}`);
+}
+
+/** The `items` of a list reply. */
+function expectItems(body: unknown): AnnotationItem[] {
+  if (typeof body !== 'object' || body === null || !('items' in body) || !Array.isArray(body.items)) {
+    throw unexpected('the list has no `items`');
+  }
+  return body.items;
+}
+
+function hasNumber(body: unknown): body is { number: number } {
+  return typeof body === 'object' && body !== null && 'number' in body && typeof body.number === 'number';
+}
+
+function isCreated(body: unknown): body is CreatedAnnotation {
+  return hasNumber(body);
+}
+
+function isNote(body: unknown): body is AnnotationItem {
+  return hasNumber(body);
+}
+
 /** Client for the annotations REST contract (see README.md). */
 export function createFetchClient({
   endpoint,
@@ -82,7 +106,7 @@ export function createFetchClient({
 }: FetchClientOptions): AnnotateClient {
   const base = endpoint.replace(/\/+$/, '');
 
-  async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+  async function request(url: string, init: RequestInit = {}): Promise<unknown> {
     // A failing `headers()` is the host's error, not a network one: let it through.
     const extra = headers ? await headers() : {};
     let response: Response;
@@ -96,11 +120,16 @@ export function createFetchClient({
       throw new AnnotateError('network', err instanceof Error ? err.message : String(err));
     }
     if (!response.ok) throw errorFor(response.status, await response.text().catch(() => ''));
-    return (await response.json()) as T;
+    try {
+      return await response.json();
+    } catch {
+      // A 200 that is not JSON is usually a login page the host redirected to.
+      throw new AnnotateError('http', 'unexpected response: the server did not return JSON', response.status);
+    }
   }
 
-  const post = <T>(url: string, body: unknown) =>
-    request<T>(url, {
+  const post = (url: string, body: unknown) =>
+    request(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -110,14 +139,18 @@ export function createFetchClient({
     async list(path: string, { fresh }: { fresh: boolean }): Promise<AnnotationItem[]> {
       const qs = new URLSearchParams({ path, state: 'all' });
       if (fresh) qs.set('fresh', '1');
-      const res = await request<{ items: AnnotationItem[] }>(`${base}?${qs.toString()}`);
-      return res.items;
+      const res = await request(`${base}?${qs.toString()}`);
+      return expectItems(res);
     },
-    create(payload: CreateAnnotationInput): Promise<CreatedAnnotation> {
-      return post<CreatedAnnotation>(base, payload);
+    async create(payload: CreateAnnotationInput): Promise<CreatedAnnotation> {
+      const body = await post(base, payload);
+      if (!isCreated(body)) throw unexpected('the created note has no `number`');
+      return body;
     },
-    setStatus(number: number, status: 'open' | 'done'): Promise<AnnotationItem> {
-      return post<AnnotationItem>(`${base}/${number}/status`, { status });
+    async setStatus(number: number, status: 'open' | 'done'): Promise<AnnotationItem> {
+      const body = await post(`${base}/${number}/status`, { status });
+      if (!isNote(body)) throw unexpected('the updated note has no `number`');
+      return body;
     },
   };
 }

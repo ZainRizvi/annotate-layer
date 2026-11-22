@@ -98,3 +98,27 @@ describe('error helpers', () => {
     expect(annotationErrorMessage(new Error('custom client broke'))).toBe('Annotations failed: custom client broke');
   });
 });
+
+describe('createFetchClient with a malformed success response', () => {
+  const client = (body: string) =>
+    createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => new Response(body, { status: 200 })) });
+
+  it('reports a body that is not JSON as an AnnotateError, not a SyntaxError', async () => {
+    const error = await client('<html>login</html>').list('/p', { fresh: false }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AnnotateError);
+    expect(annotationErrorMessage(error)).toContain('unexpected response');
+  });
+
+  it('reports a list reply without `items` as an AnnotateError', async () => {
+    const error = await client('{}').list('/p', { fresh: false }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(AnnotateError);
+  });
+});
+
+describe('createFetchClient with a reply that has no note', () => {
+  it('rejects a create or status reply without a number', async () => {
+    const client = createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => jsonResponse({ ok: true })) });
+    await expect(client.create(input)).rejects.toBeInstanceOf(AnnotateError);
+    await expect(client.setStatus(1, 'done')).rejects.toBeInstanceOf(AnnotateError);
+  });
+});
