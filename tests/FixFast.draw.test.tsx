@@ -444,6 +444,13 @@ describe('DrawMode focus on open', () => {
     expect(document.body).toHaveFocus();
   });
 
+  it('does not move focus when autoFocus turns on after open', () => {
+    const { rerender } = render(<DrawMode {...props} autoFocus={false} />);
+    expect(document.body).toHaveFocus();
+    rerender(<DrawMode {...props} autoFocus={true} />);
+    expect(document.body).toHaveFocus();
+  });
+
   it('does not move focus without autoFocus', () => {
     render(<DrawMode {...props} />);
     expect(document.body).toHaveFocus();
