@@ -1,3 +1,7 @@
+/**
+ * Draw mode: the full-viewport pen surface and the Undo / Clear / Cancel / Done toolbar.
+ */
+
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -28,10 +32,12 @@ export default function DrawMode({ strokes, live, sink, onUndo, onClear, onCance
   const surfaceRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
+  // Only the value at open counts: later renders must not move focus.
+  const autoFocusOnOpen = useRef(autoFocus);
   useEffect(() => {
-    if (autoFocus) barRef.current?.querySelector<HTMLElement>('button:not([disabled])')?.focus({ preventScroll: true });
-    // Only when draw mode opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (autoFocusOnOpen.current) {
+      barRef.current?.querySelector<HTMLElement>('button:not([disabled])')?.focus({ preventScroll: true });
+    }
   }, []);
   const activePointer = useRef<number | null>(null);
 

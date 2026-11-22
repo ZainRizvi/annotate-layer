@@ -5,6 +5,7 @@ import React from 'react';
 import { LONG_PRESS_MS } from '../src/useLongPress';
 import { buildAnchor, textSnippet } from '../src/picker';
 import { fakeClient, makeLayer } from './helpers';
+import DrawMode from '../src/DrawMode';
 
 const MAC = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
 const MOD = MAC ? { metaKey: true } : { ctrlKey: true };
@@ -428,5 +429,30 @@ describe('FixFast drawing', () => {
       expect(paths()).toEqual(['M100.0 200.0L300.0 300.0']);
       await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
     });
+  });
+});
+
+describe('DrawMode focus on open', () => {
+  const sink = { begin() {}, extend() {}, end() {} };
+  const props = { strokes: [], live: null, sink, onUndo() {}, onClear() {}, onCancel() {}, onDone() {} };
+
+  it('focuses the first usable toolbar button once; later renders leave focus alone', () => {
+    const { rerender } = render(<DrawMode {...props} autoFocus />);
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    screen.getByRole('button', { name: 'Cancel' }).blur();
+    rerender(<DrawMode {...props} autoFocus strokes={[[[0, 0], [5, 5]]]} />);
+    expect(document.body).toHaveFocus();
+  });
+
+  it('does not move focus when autoFocus turns on after open', () => {
+    const { rerender } = render(<DrawMode {...props} autoFocus={false} />);
+    expect(document.body).toHaveFocus();
+    rerender(<DrawMode {...props} autoFocus={true} />);
+    expect(document.body).toHaveFocus();
+  });
+
+  it('does not move focus without autoFocus', () => {
+    render(<DrawMode {...props} />);
+    expect(document.body).toHaveFocus();
   });
 });

@@ -1,3 +1,7 @@
+/**
+ * The bottom sheet / side panel shell used by every sheet: focus trap, swipe to close, keyboard-aware sizing and dismiss control.
+ */
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
@@ -162,9 +166,9 @@ export default function Sheet({
   }, [modal]);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if ((e.target as Element).closest('button, a')) return;
+    if (e.target instanceof Element && e.target.closest('button, a')) return;
     dragStart.current = { id: e.pointerId, y: e.clientY };
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (dragStart.current?.id !== e.pointerId) return;
@@ -175,7 +179,8 @@ export default function Sheet({
     const distance = e.clientY - dragStart.current.y;
     dragStart.current = null;
     setDrag(0);
-    if (distance > SWIPE_CLOSE_PX && !closeDisabled) (control ? control.requestDismiss : onClose)();
+    const dismiss: () => void = control ? control.requestDismiss : onClose;
+    if (distance > SWIPE_CLOSE_PX && !closeDisabled) dismiss();
   };
 
   return (

@@ -1,3 +1,7 @@
+/**
+ * The sheet for writing a new note on a picked element or drawing: type, text, target chain, draft saving and submit.
+ */
+
 'use client';
 
 import React, { useContext, useEffect, useRef, useState } from 'react';

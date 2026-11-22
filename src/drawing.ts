@@ -1,3 +1,7 @@
+/**
+ * Pen stroke geometry: simplifying and limiting strokes, converting between viewport pixels and element-relative coordinates, bounds, and SVG paths.
+ */
+
 import type { AnnotationDrawing, AnnotationRect, AnnotationStroke } from './types';
 
 /** A point in viewport CSS pixels. */
@@ -35,8 +39,8 @@ export function simplifyStroke(points: PixelStroke, epsilon = SIMPLIFY_PX): Pixe
   keep[0] = 1;
   keep[points.length - 1] = 1;
   const stack: Array<[number, number]> = [[0, points.length - 1]];
-  while (stack.length) {
-    const [first, last] = stack.pop()!;
+  for (let range = stack.pop(); range; range = stack.pop()) {
+    const [first, last] = range;
     let index = -1;
     let max = 0;
     for (let i = first + 1; i < last; i++) {
@@ -123,7 +127,7 @@ export function normalizeDrawing(strokes: PixelStroke[], rect: AnnotationRect): 
   const w = rect.w || 1;
   const h = rect.h || 1;
   const relative: AnnotationStroke[] = strokes.map((stroke) =>
-    stroke.map(([x, y]) => [clampCoord((x - rect.x) / w), clampCoord((y - rect.y) / h)] as [number, number])
+    stroke.map(([x, y]): Point => [clampCoord((x - rect.x) / w), clampCoord((y - rect.y) / h)])
   );
   const bounds = strokesBounds(relative) ?? { x: 0, y: 0, w: 0, h: 0 };
   return {
@@ -135,14 +139,14 @@ export function normalizeDrawing(strokes: PixelStroke[], rect: AnnotationRect): 
 /** A stored drawing in viewport pixels for the element's current rect. */
 export function drawingToPixels(drawing: AnnotationDrawing, rect: AnnotationRect): PixelStroke[] {
   return drawing.strokes.map((stroke) =>
-    stroke.map(([x, y]) => [rect.x + x * rect.w, rect.y + y * rect.h] as Point)
+    stroke.map(([x, y]): Point => [rect.x + x * rect.w, rect.y + y * rect.h])
   );
 }
 
 /** Whether a value from the server looks like a drawing the layer can render. */
 export function isDrawing(value: unknown): value is AnnotationDrawing {
-  if (!value || typeof value !== 'object') return false;
-  const strokes = (value as { strokes?: unknown }).strokes;
+  if (!value || typeof value !== 'object' || !('strokes' in value)) return false;
+  const { strokes } = value;
   return (
     Array.isArray(strokes) &&
     strokes.every(
@@ -166,7 +170,7 @@ export function reprojectStrokes(strokes: PixelStroke[], from: AnnotationRect, t
   const sx = from.w ? to.w / from.w : 1;
   const sy = from.h ? to.h / from.h : 1;
   return strokes.map((stroke) =>
-    stroke.map(([x, y]) => [to.x + (x - from.x) * sx, to.y + (y - from.y) * sy] as Point)
+    stroke.map(([x, y]): Point => [to.x + (x - from.x) * sx, to.y + (y - from.y) * sy])
   );
 }
 

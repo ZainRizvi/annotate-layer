@@ -1,3 +1,7 @@
+/**
+ * The FixFast annotation layer: the pin button and its menu, pick and draw modes, pins on the page, and the new-note and notes sheets.
+ */
+
 'use client';
 
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -117,16 +121,21 @@ function rectStyle(el: Element | null): React.CSSProperties | null {
   return { left: r.left - 3, top: r.top - 3, width: r.width + 6, height: r.height + 6 };
 }
 
+/** Whether `el` carries an inline `style` (HTML and SVG elements do, whichever window they came from). */
+function hasInlineStyle(el: Element): el is Element & ElementCSSInlineStyle {
+  return 'style' in el && typeof el.style === 'object' && el.style !== null && 'setProperty' in el.style;
+}
+
 /** Bring `el` into the part of the screen above the sheet. */
 function revealAbove(el: Element, sheetTop: number) {
   const r = el.getBoundingClientRect();
   const topLimit = 72;
   if (r.top >= topLimit && r.top < sheetTop - 48) return;
-  const html = el as HTMLElement;
-  const previous = html.style.scrollMarginTop;
-  html.style.scrollMarginTop = `${topLimit}px`;
+  const styled = hasInlineStyle(el) ? el : null;
+  const previous = styled?.style.scrollMarginTop ?? '';
+  if (styled) styled.style.scrollMarginTop = `${topLimit}px`;
   el.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-  html.style.scrollMarginTop = previous;
+  if (styled) styled.style.scrollMarginTop = previous;
 }
 
 /** Draw mode: finished strokes and the one in progress, in viewport pixels. */
@@ -337,14 +346,11 @@ export function FixFast({
       const { key, draft: storedDraft } = resolveDraft(path, chain[0], snippet);
       // Without fresh marks, a draft's marks come back with its text, placed
       // on the element where it is now.
-      let strokes = marks?.strokes;
-      let dropped = marks?.dropped ?? 0;
-      if (!strokes) {
-        const saved = storedDraft?.drawing;
-        if (saved && snapshot.rects[0]) {
-          ({ strokes, dropped } = limitStrokes(drawingToPixels(saved, snapshot.rects[0])));
-        }
-      }
+      const saved = storedDraft?.drawing;
+      const savedRect = snapshot.rects[0];
+      const restored = !marks?.strokes && saved && savedRect ? limitStrokes(drawingToPixels(saved, savedRect)) : undefined;
+      const strokes = marks?.strokes ?? restored?.strokes;
+      const dropped = restored?.dropped ?? marks?.dropped ?? 0;
       resetForSheet();
       openIdRef.current += 1;
       setSheet({

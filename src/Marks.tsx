@@ -1,3 +1,7 @@
+/**
+ * The SVG overlay that renders pen strokes, in viewport pixels, over the page.
+ */
+
 'use client';
 
 import React from 'react';

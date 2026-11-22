@@ -1,3 +1,7 @@
+/**
+ * Hook that detects a long press on a page element to pick it, and lets the press continue as a pen stroke.
+ */
+
 'use client';
 
 import { useEffect, useRef } from 'react';

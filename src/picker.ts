@@ -1,3 +1,7 @@
+/**
+ * Element picking and anchoring: identifies layer UI, builds pick chains, labels, CSS paths and text snippets, and finds an anchor's element again on a page.
+ */
+
 import type { AnnotationAnchor } from './types';
 
 /** Attribute that marks the layer's own UI; the picker and long-press skip it. */
@@ -97,8 +101,7 @@ export function cssPath(el: Element): string {
  * spaces), else `textContent`. Collapsed to single spaces.
  */
 function readableText(el: Element): string {
-  const inner = (el as HTMLElement).innerText;
-  const raw = typeof inner === 'string' ? inner : el.textContent ?? '';
+  const raw = 'innerText' in el && typeof el.innerText === 'string' ? el.innerText : el.textContent ?? '';
   return raw.replace(/\s+/g, ' ').trim();
 }
 

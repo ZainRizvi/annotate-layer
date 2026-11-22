@@ -1,3 +1,7 @@
+/**
+ * Note pins on the page: places each note's pin at its element's corner, groups pins per element and hides ones that are covered or off screen.
+ */
+
 'use client';
 
 import React, { useEffect } from 'react';
@@ -12,6 +16,11 @@ export const STATUS_COLORS: Record<AnnotationStatus, string> = {
   working: 'rgb(var(--_ann-working))',
   done: 'rgb(var(--_ann-done))',
 };
+
+/** A pin's inline style: its position plus the fill colour the stylesheet reads from `--ann-pin`. */
+type PinStyle = React.CSSProperties & { '--ann-pin': string };
+
+const pinStyle = (left: number, top: number, fill: string): PinStyle => ({ left, top, '--ann-pin': fill });
 
 const EDGE_MARGIN = 10;
 /** Sub-pixel overflow at the screen edge still counts as on screen. */
@@ -118,7 +127,7 @@ export default function Pins({ notes, anchors, frame, onOpen, onOpenGroup, onSho
         type="button"
         className="ann-pin"
         data-status={note.status}
-        style={{ left: x0 + step * i, top: y, ['--ann-pin' as string]: STATUS_COLORS[note.status] }}
+        style={pinStyle(x0 + step * i, y, STATUS_COLORS[note.status])}
         aria-label={`Note #${note.number}, ${STATUS_LABELS[note.status]}`}
         onClick={() => onOpen(note)}
       >
