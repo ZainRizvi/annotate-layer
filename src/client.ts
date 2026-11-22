@@ -73,28 +73,29 @@ function errorFor(status: number, body: string): AnnotateError {
   return new AnnotateError('http', detail, status);
 }
 
-function unexpected(what: string): AnnotateError {
-  return new AnnotateError('http', `unexpected response: ${what}`);
-}
-
-/** The `items` of a list reply. */
-function expectItems(body: unknown): AnnotationItem[] {
-  if (typeof body !== 'object' || body === null || !('items' in body) || !Array.isArray(body.items)) {
-    throw unexpected('the list has no `items`');
-  }
-  return body.items;
+function unexpected(what: string, status: number): AnnotateError {
+  return new AnnotateError('http', `unexpected response: ${what}`, status);
 }
 
 function hasNumber(body: unknown): body is { number: number } {
   return typeof body === 'object' && body !== null && 'number' in body && typeof body.number === 'number';
 }
 
+/**
+ * Whether `body` identifies a note by its `number`. That is the only field checked: the rest of a
+ * note's shape is the server's contract (docs/contract.md), and a reply without a number is the
+ * mark of a page or proxy answering instead of the server.
+ */
+function isNote(body: unknown): body is AnnotationItem {
+  return hasNumber(body);
+}
+
 function isCreated(body: unknown): body is CreatedAnnotation {
   return hasNumber(body);
 }
 
-function isNote(body: unknown): body is AnnotationItem {
-  return hasNumber(body);
+function isItems(body: unknown): body is { items: AnnotationItem[] } {
+  return typeof body === 'object' && body !== null && 'items' in body && Array.isArray(body.items) && body.items.every(isNote);
 }
 
 /** Client for the annotations REST contract (see README.md). */
@@ -106,7 +107,7 @@ export function createFetchClient({
 }: FetchClientOptions): AnnotateClient {
   const base = endpoint.replace(/\/+$/, '');
 
-  async function request(url: string, init: RequestInit = {}): Promise<unknown> {
+  async function request(url: string, init: RequestInit = {}): Promise<{ status: number; body: unknown }> {
     // A failing `headers()` is the host's error, not a network one: let it through.
     const extra = headers ? await headers() : {};
     let response: Response;
@@ -121,10 +122,10 @@ export function createFetchClient({
     }
     if (!response.ok) throw errorFor(response.status, await response.text().catch(() => ''));
     try {
-      return await response.json();
+      return { status: response.status, body: await response.json() };
     } catch {
       // A 200 that is not JSON is usually a login page the host redirected to.
-      throw new AnnotateError('http', 'unexpected response: the server did not return JSON', response.status);
+      throw unexpected('the server did not return JSON', response.status);
     }
   }
 
@@ -139,17 +140,20 @@ export function createFetchClient({
     async list(path: string, { fresh }: { fresh: boolean }): Promise<AnnotationItem[]> {
       const qs = new URLSearchParams({ path, state: 'all' });
       if (fresh) qs.set('fresh', '1');
-      const res = await request(`${base}?${qs.toString()}`);
-      return expectItems(res);
+      const { status, body } = await request(`${base}?${qs.toString()}`);
+      if (!isItems(body)) throw unexpected('the list has no `items` of notes', status);
+      return body.items;
     },
     async create(payload: CreateAnnotationInput): Promise<CreatedAnnotation> {
-      const body = await post(base, payload);
-      if (!isCreated(body)) throw unexpected('the created note has no `number`');
+      const { status, body } = await post(base, payload);
+      if (!isCreated(body)) {
+        throw unexpected('the created note has no `number`; it may have been saved, so check the list before retrying', status);
+      }
       return body;
     },
     async setStatus(number: number, status: 'open' | 'done'): Promise<AnnotationItem> {
-      const body = await post(`${base}/${number}/status`, { status });
-      if (!isNote(body)) throw unexpected('the updated note has no `number`');
+      const { status: code, body } = await post(`${base}/${number}/status`, { status });
+      if (!isNote(body)) throw unexpected('the updated note has no `number`', code);
       return body;
     },
   };
