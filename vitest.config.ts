@@ -1,3 +1,4 @@
+/** Runs the unit tests in jsdom with the React plugin. */
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 

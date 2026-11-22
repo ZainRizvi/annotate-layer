@@ -21,7 +21,7 @@ jobs:
           node-version: 24
       - env:
           TITLE: ${{ github.event.pull_request.title }}
-        run: node scripts/release-type.ts --check-title "$TITLE"
+        run: node scripts/release-type.main.ts --check-title "$TITLE"
 
   layer:
     runs-on: ubuntu-latest

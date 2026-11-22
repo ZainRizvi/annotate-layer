@@ -153,7 +153,7 @@ tests) together.
 
 Versions follow semver strictly, and merging to main releases. Squash-merge PRs with a
 conventional-commit title. The rules for titles and the release each one makes are in
-[`scripts/release-type.ts`](scripts/release-type.ts); CI checks PR titles against them. When CI
+[`scripts/release-type.ts`](scripts/release-type.ts); its command line is `scripts/release-type.main.ts`. CI checks PR titles against them. When CI
 passes on main, `.github/workflows/publish.yml` bumps the version, pushes the version commit and
 tag, publishes to npm through trusted publishing (no npm token in the repo) and creates the GitHub
 release. Don't bump the version in a PR. Published versions are immutable; fix forward.

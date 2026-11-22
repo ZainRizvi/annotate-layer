@@ -1,0 +1,13 @@
+{
+  "testModules": [
+    "**/*.test.{ts,tsx,mts,cts}",
+    "**/*.spec.{ts,tsx,mts,cts}",
+    "**/*.test-support.{ts,tsx,mts,cts}",
+    "**/e2e/**/*.{ts,tsx,mts,cts}",
+    "**/__tests__/**/*.{ts,tsx,mts,cts}",
+    "**/__tests_dts__/**/*.{ts,tsx,mts,cts}",
+    "**/test/**/*.{ts,tsx,mts,cts}",
+    "**/tests/**/*.{ts,tsx,mts,cts}",
+    "vitest.config.{ts,mts,cts}"
+  ]
+}

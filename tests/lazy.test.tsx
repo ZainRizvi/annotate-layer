@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { createLazyFixFast, type FixFastModule } from '../src/lazy';
+import { createLazyFixFast, type FixFastModule } from '../src/lazy.main';
 import { FixFast } from '../src/FixFast';
 import { hostContext } from './helpers';
 
