@@ -1,3 +1,4 @@
+/** Bundles the package: the main and lazy entries as ES modules with type declarations. */
 import { defineConfig } from 'tsup';
 
 export default defineConfig({

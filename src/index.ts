@@ -1,3 +1,4 @@
+/** The package entry: the annotation layer, its client and the types a host page uses. */
 export {
   FixFast,
   type FixFastOptions,

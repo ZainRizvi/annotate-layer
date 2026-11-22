@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { commitReleaseType, isValidTitle, releaseType, titleHelp } from '../scripts/release-type';
 
 describe('commitReleaseType', () => {
@@ -53,5 +54,29 @@ describe('isValidTitle', () => {
   it('lists every type in the help text', () => {
     expect(titleHelp()).toMatch(/feat\s+minor/);
     expect(titleHelp()).toMatch(/docs\s+no release/);
+  });
+});
+
+describe('release-type.main.ts', () => {
+  const cli = (args: string[], input = '') =>
+    spawnSync(process.execPath, ['scripts/release-type.main.ts', ...args], { input, encoding: 'utf8' });
+
+  it('prints the release the commit log makes', () => {
+    expect(cli([], 'feat: a\0fix: b\0').stdout).toBe('minor\n');
+    expect(cli([], '').stdout).toBe('none\n');
+  });
+
+  it('prints a pinned version', () => {
+    expect(cli([], 'fix: a\n\nRelease-As: v2.0.1\0feat!: b\0').stdout).toBe('2.0.1\n');
+  });
+
+  it('accepts a valid title', () => {
+    expect(cli(['--check-title', 'feat(x): ok']).status).toBe(0);
+  });
+
+  it('rejects an invalid title and lists the types', () => {
+    const result = cli(['--check-title', 'bad title']);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toBe(`${titleHelp()}\n`);
   });
 });

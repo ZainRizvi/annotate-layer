@@ -1,3 +1,4 @@
+/** The lazy entry: loads the annotation layer only for viewers who may annotate. */
 import React, { Component, lazy, Suspense, useMemo, type ComponentType, type ReactNode } from 'react';
 import type { FixFastProps } from './FixFast';
 
@@ -74,7 +75,7 @@ export function createLazyFixFast(
     return (
       <LayerBoundary onError={onError}>
         <Suspense fallback={fallback}>
-          <Layer {...(props as FixFastProps)} />
+          <Layer {...props} />
         </Suspense>
       </LayerBoundary>
     );

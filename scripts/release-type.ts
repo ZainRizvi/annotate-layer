@@ -8,12 +8,10 @@
  * release takes the largest bump among the commits merged since the last tag; `none` everywhere
  * means no release. A `Release-As: x.y.z` footer sets that exact version instead.
  *
- * CLI:
- *   git log --format=%B%x00 v1.2.3..HEAD | node scripts/release-type.ts   → major|minor|patch|none|x.y.z
- *   node scripts/release-type.ts --check-title "<PR title>"              → exits 1 and lists the types
+ * The command line lives in `release-type.main.ts`:
+ *   git log --format=%B%x00 v1.2.3..HEAD | node scripts/release-type.main.ts   prints major|minor|patch|none|x.y.z
+ *   node scripts/release-type.main.ts --check-title "a PR title"               exits 1 and lists the types
  */
-import { pathToFileURL } from 'node:url';
-
 export type ReleaseType = 'major' | 'minor' | 'patch' | 'none';
 /** A bump, or an exact version from a `Release-As` footer. */
 export type Release = ReleaseType | `${number}.${number}.${number}`;
@@ -35,6 +33,7 @@ export const BUMP_BY_TYPE = {
 const HEADER = /^(\w+)(\([^)]+\))?(!)?: \S/;
 const BREAKING_FOOTER = /^BREAKING[ -]CHANGE:/m;
 const RELEASE_AS = /^Release-As:\s*v?(\d+\.\d+\.\d+)\s*$/im;
+const VERSION = /^\d+\.\d+\.\d+$/;
 const RANK: Record<ReleaseType, number> = { none: 0, patch: 1, minor: 2, major: 3 };
 
 function knownType(type: string): type is keyof typeof BUMP_BY_TYPE {
@@ -53,11 +52,19 @@ export function commitReleaseType(message: string): ReleaseType {
   return BUMP_BY_TYPE[header[1]];
 }
 
+function isVersion(text: string): text is `${number}.${number}.${number}` {
+  return VERSION.test(text);
+}
+
+/** The exact version a `Release-As` footer pins, if the message has one. */
+function pinnedVersion(message: string): Release | undefined {
+  const version = RELEASE_AS.exec(message)?.[1];
+  return version !== undefined && isVersion(version) ? version : undefined;
+}
+
 export function releaseType(messages: string[]): Release {
-  for (const m of messages) {
-    const pinned = RELEASE_AS.exec(m);
-    if (pinned) return pinned[1] as Release;
-  }
+  const pinned = messages.map(pinnedVersion).find((v) => v !== undefined);
+  if (pinned) return pinned;
   return messages.reduce<ReleaseType>((best, m) => {
     const t = commitReleaseType(m);
     return RANK[t] > RANK[best] ? t : best;
@@ -69,19 +76,4 @@ export function titleHelp(): string {
     ([type, bump]) => `  ${type.padEnd(9)}${bump === 'none' ? 'no release' : bump}`
   );
   return ['PR title: `type(scope)!: summary`. Scope is optional; `!` marks a breaking change (major).', ...rows].join('\n');
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  if (process.argv[2] === '--check-title') {
-    const title = process.argv[3] ?? '';
-    if (!isValidTitle(title)) {
-      console.error(titleHelp());
-      process.exit(1);
-    }
-  } else {
-    const chunks: Buffer[] = [];
-    for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-    const messages = Buffer.concat(chunks).toString('utf8').split('\0').filter((m) => m.trim());
-    console.log(releaseType(messages));
-  }
 }
