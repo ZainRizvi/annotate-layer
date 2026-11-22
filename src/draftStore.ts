@@ -1,4 +1,4 @@
-import type { AnnotationAnchor, AnnotationDrawing, AnnotationType } from './types';
+import { ANNOTATION_TYPES, type AnnotationAnchor, type AnnotationDrawing, type AnnotationType } from './types';
 import { cssPath, findAnchor, isInLayerUI, snippetsCompatible, UNIQUE_ATTR } from './picker';
 import { isDrawing } from './drawing';
 
@@ -26,6 +26,10 @@ export interface NoteDraft {
    * key once rows shift; the anchor's ancestor text tells them apart.
    */
   anchor?: AnnotationAnchor;
+}
+
+function isAnnotationType(value: unknown): value is AnnotationType {
+  return ANNOTATION_TYPES.some((type) => type === value);
 }
 
 function isAnchor(value: unknown): value is AnnotationAnchor {
@@ -93,7 +97,8 @@ function draftFor(raw: string | null, snippet: string, el: Element): NoteDraft |
     const drawing = isDrawing(parsed.drawing) && parsed.drawing.strokes.length > 0 ? parsed.drawing : undefined;
     return {
       text: parsed.text,
-      type: parsed.type as AnnotationType,
+      // A stored type the layer no longer offers falls back to the sheet's default; the text still comes back.
+      type: isAnnotationType(parsed.type) ? parsed.type : 'bug',
       snippet,
       ...(drawing ? { drawing } : {}),
       ...(isAnchor(parsed.anchor) ? { anchor: parsed.anchor } : {}),
