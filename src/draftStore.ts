@@ -1,13 +1,14 @@
-import { ANNOTATION_TYPES, type AnnotationAnchor, type AnnotationDrawing, type AnnotationType } from './types';
-import { cssPath, findAnchor, isInLayerUI, snippetsCompatible, UNIQUE_ATTR } from './picker';
-import { isDrawing } from './drawing';
-
 /**
  * Unsaved note drafts, kept in sessionStorage so a sheet closed by accident
  * (Back, a tap elsewhere, a route change) gives the text, type and marks back
  * when the admin opens a note on the same element again. Storage failures are ignored: the
  * draft is a convenience, the sheet works without it.
  */
+
+import { sessionDrafts } from './adapters/sessionStorage';
+import { ANNOTATION_TYPES, type AnnotationAnchor, type AnnotationDrawing, type AnnotationRect, type AnnotationType } from './types';
+import { cssPath, findAnchor, isInLayerUI, snippetsCompatible, UNIQUE_ATTR } from './picker';
+import { isDrawing } from './drawing';
 
 export interface NoteDraft {
   text: string;
@@ -32,14 +33,33 @@ function isAnnotationType(value: unknown): value is AnnotationType {
   return ANNOTATION_TYPES.some((type) => type === value);
 }
 
+/** `value[key]`, or undefined when `value` is not an object or lacks the key. */
+function fieldOf(value: unknown, key: string): unknown {
+  return typeof value === 'object' && value !== null
+    ? Object.entries(value).find(([name]) => name === key)?.[1]
+    : undefined;
+}
+
+const isAbsent = (value: unknown): boolean => value === undefined;
+const isString = (value: unknown): value is string => typeof value === 'string';
+
+function isRect(value: unknown): value is AnnotationRect {
+  return ['x', 'y', 'w', 'h'].every((key) => Number.isFinite(fieldOf(value, key)));
+}
+
 function isAnchor(value: unknown): value is AnnotationAnchor {
-  if (!value || typeof value !== 'object') return false;
-  const { css_path, path, ancestor_snippets } = value as Partial<AnnotationAnchor>;
+  const ancestors = fieldOf(value, 'ancestor_snippets');
   return (
-    typeof css_path === 'string' &&
-    typeof path === 'string' &&
-    (ancestor_snippets == null ||
-      (Array.isArray(ancestor_snippets) && ancestor_snippets.every((s) => typeof s === 'string')))
+    typeof value === 'object' &&
+    value !== null &&
+    isString(fieldOf(value, 'path')) &&
+    isString(fieldOf(value, 'url')) &&
+    isString(fieldOf(value, 'css_path')) &&
+    (isAbsent(fieldOf(value, 'ann_id')) || isString(fieldOf(value, 'ann_id'))) &&
+    (isAbsent(fieldOf(value, 'text_snippet')) || isString(fieldOf(value, 'text_snippet'))) &&
+    (isAbsent(ancestors) || ancestors === null || (Array.isArray(ancestors) && ancestors.every(isString))) &&
+    (isAbsent(fieldOf(value, 'rect')) || isRect(fieldOf(value, 'rect'))) &&
+    (isAbsent(fieldOf(value, 'drawing')) || isDrawing(fieldOf(value, 'drawing')))
   );
 }
 
@@ -89,19 +109,23 @@ export function draftKey(path: string, el: Element): string {
 function draftFor(raw: string | null, snippet: string, el: Element): NoteDraft | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<NoteDraft>;
-    if (typeof parsed.text !== 'string' || typeof parsed.type !== 'string') return null;
-    if (typeof parsed.snippet !== 'string' || !snippetsCompatible(parsed.snippet, snippet)) return null;
-    if (!draftBelongsTo(parsed.anchor, el, parsed.snippet !== snippet)) return null;
-    // A drawing that does not validate is dropped; the text still comes back.
-    const drawing = isDrawing(parsed.drawing) && parsed.drawing.strokes.length > 0 ? parsed.drawing : undefined;
+    const parsed: unknown = JSON.parse(raw);
+    const text = fieldOf(parsed, 'text');
+    const type = fieldOf(parsed, 'type');
+    const storedSnippet = fieldOf(parsed, 'snippet');
+    const anchor = fieldOf(parsed, 'anchor');
+    const drawing = fieldOf(parsed, 'drawing');
+    if (!isString(text) || !isString(type)) return null;
+    if (!isString(storedSnippet) || !snippetsCompatible(storedSnippet, snippet)) return null;
+    if (!draftBelongsTo(anchor, el, storedSnippet !== snippet)) return null;
     return {
-      text: parsed.text,
+      text,
       // A stored type the layer no longer offers falls back to the sheet's default; the text still comes back.
-      type: isAnnotationType(parsed.type) ? parsed.type : 'bug',
+      type: isAnnotationType(type) ? type : 'bug',
       snippet,
-      ...(drawing ? { drawing } : {}),
-      ...(isAnchor(parsed.anchor) ? { anchor: parsed.anchor } : {}),
+      // A drawing that does not validate is dropped; the text still comes back.
+      ...(isDrawing(drawing) && drawing.strokes.length > 0 ? { drawing } : {}),
+      ...(isAnchor(anchor) ? { anchor } : {}),
     };
   } catch {
     return null;
@@ -110,7 +134,7 @@ function draftFor(raw: string | null, snippet: string, el: Element): NoteDraft |
 
 function read(key: string): string | null {
   try {
-    return sessionStorage.getItem(key);
+    return sessionDrafts.get(key);
   } catch {
     return null;
   }
@@ -119,16 +143,12 @@ function read(key: string): string | null {
 /** This page's draft keys other than `except`. */
 function pageDraftKeys(path: string, except: string): string[] {
   const prefix = `${PREFIX}${path}|`;
-  const keys: string[] = [];
   try {
-    for (let i = 0; i < sessionStorage.length; i++) {
-      const key = sessionStorage.key(i);
-      if (key && key !== except && key.startsWith(prefix)) keys.push(key);
-    }
+    return sessionDrafts.keys().filter((key) => key !== except && key.startsWith(prefix));
   } catch {
     // No storage: no drafts.
+    return [];
   }
-  return keys;
 }
 
 /**
@@ -153,8 +173,8 @@ export function resolveDraft(path: string, el: Element, snippet: string): { key:
     if (!draft || !raw) continue;
     if (here) return { key: other, draft };
     try {
-      sessionStorage.setItem(key, raw);
-      sessionStorage.removeItem(other);
+      sessionDrafts.set(key, raw);
+      sessionDrafts.remove(other);
       return { key, draft };
     } catch {
       return { key: other, draft };
@@ -180,8 +200,8 @@ export function loadDraft(key: string, snippet: string, el: Element): NoteDraft 
 
 export function saveDraft(key: string, draft: NoteDraft): void {
   try {
-    if (draft.text.trim() || draft.drawing?.strokes.length) sessionStorage.setItem(key, JSON.stringify(draft));
-    else sessionStorage.removeItem(key);
+    if (draft.text.trim() || draft.drawing?.strokes.length) sessionDrafts.set(key, JSON.stringify(draft));
+    else sessionDrafts.remove(key);
   } catch {
     // Private mode or quota: keep working without autosave.
   }
@@ -190,7 +210,7 @@ export function saveDraft(key: string, draft: NoteDraft): void {
 /** Whether any draft is stored under `key`, whatever element it was for. */
 export function hasDraft(key: string): boolean {
   try {
-    return sessionStorage.getItem(key) !== null;
+    return sessionDrafts.get(key) !== null;
   } catch {
     return false;
   }
@@ -198,7 +218,7 @@ export function hasDraft(key: string): boolean {
 
 export function clearDraft(key: string): void {
   try {
-    sessionStorage.removeItem(key);
+    sessionDrafts.remove(key);
   } catch {
     // See saveDraft.
   }

@@ -6,6 +6,20 @@ function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
+const note = {
+  number: 7,
+  html_url: 'https://github.com/example/site/issues/7',
+  title: '[ann] Button text is cut off',
+  text: 'Button text is cut off',
+  type: 'bug',
+  status: 'done',
+  anchor: { path: '/pricing', url: 'https://example.com/pricing', css_path: 'main > button' },
+  created_at: '2026-11-05T10:00:00Z',
+  updated_at: '2026-11-06T10:00:00Z',
+  closed_at: '2026-11-06T10:00:00Z',
+  author: 'admin@example.com',
+};
+
 const input: CreateAnnotationInput = {
   text: 'Button text is cut off',
   type: 'bug',
@@ -21,7 +35,7 @@ describe('createFetchClient', () => {
     await client.list('/pricing', { fresh: true });
     fetchMock.mockResolvedValueOnce(jsonResponse({ number: 7, html_url: 'h', status: 'open', created_at: 't' }, 201));
     await client.create(input);
-    fetchMock.mockResolvedValueOnce(jsonResponse({ number: 7 }));
+    fetchMock.mockResolvedValueOnce(jsonResponse(note));
     await client.setStatus(7, 'done');
 
     const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
@@ -90,6 +104,77 @@ describe('createFetchClient', () => {
   });
 });
 
+describe('createFetchClient replies', () => {
+  const clientFor = (reply: unknown) =>
+    createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => jsonResponse(reply)) });
+
+  it('returns a list item as the contract shapes it, with null fields read as absent', async () => {
+    const wire = {
+      ...note,
+      type: null,
+      closed_at: null,
+      author: null,
+      anchor: { ...note.anchor, ann_id: null, text_snippet: null, ancestor_snippets: null, rect: null, drawing: null },
+    };
+    const [item] = await clientFor({ items: [wire] }).list('/pricing', { fresh: false });
+    expect(item).toEqual({
+      ...note,
+      closed_at: undefined,
+      type: null,
+      author: '',
+      anchor: { ...note.anchor, ancestor_snippets: null },
+    });
+  });
+
+  it('keeps the optional anchor fields a server stored', async () => {
+    const anchor = {
+      ...note.anchor,
+      ann_id: 'cta',
+      text_snippet: 'Buy',
+      ancestor_snippets: ['Plan'],
+      rect: { x: 1, y: 2, w: 3, h: 4 },
+      drawing: { strokes: [[[0, 0]]], bbox: { x: 0, y: 0, w: 0, h: 0 } },
+    };
+    const [item] = await clientFor({ items: [{ ...note, anchor }] }).list('/pricing', { fresh: false });
+    expect(item.anchor).toEqual(anchor);
+  });
+
+  it('reads a type the layer does not offer as no type', async () => {
+    const [item] = await clientFor({ items: [{ ...note, type: 'rant' }] }).list('/pricing', { fresh: false });
+    expect(item.type).toBeNull();
+  });
+
+  it.each([
+    ['no html_url', { ...note, html_url: undefined }],
+    ['a string number', { ...note, number: '7' }],
+    ['an unknown status', { ...note, status: 'archived' }],
+    ['no anchor', { ...note, anchor: undefined }],
+    ['an anchor without css_path', { ...note, anchor: { path: '/p', url: 'u' } }],
+    ['a rect with a missing side', { ...note, anchor: { ...note.anchor, rect: { x: 1, y: 2, w: 3 } } }],
+    ['a numeric closed_at', { ...note, closed_at: 5 }],
+  ])('rejects a note with %s', async (_label, bad) => {
+    await expect(clientFor({ items: [bad] }).list('/p', { fresh: false })).rejects.toBeInstanceOf(AnnotateError);
+    await expect(clientFor(bad).setStatus(7, 'done')).rejects.toBeInstanceOf(AnnotateError);
+  });
+
+  it('rejects a created reply missing a field the contract requires', async () => {
+    const created = { number: 7, html_url: 'h', status: 'open', created_at: 't' };
+    await expect(clientFor(created).create(input)).resolves.toEqual(created);
+    await expect(clientFor({ number: 7 }).create(input)).rejects.toBeInstanceOf(AnnotateError);
+  });
+
+  it('uses the global fetch when no fetch option is given', async () => {
+    const global = vi.fn(async () => jsonResponse({ items: [] }));
+    vi.stubGlobal('fetch', global);
+    try {
+      await createFetchClient({ endpoint: '/notes' }).list('/p', { fresh: false });
+      expect(global).toHaveBeenCalledOnce();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe('error helpers', () => {
   it('describes each kind in one line and recognises a gone note', () => {
     expect(isAnnotationGone(new AnnotateError('not_found', 'annotation_not_found', 404))).toBe(true);
@@ -135,5 +220,12 @@ describe('createFetchClient with a malformed success reply', () => {
     const client = createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => jsonResponse({ ok: true })) });
     const error = await client.create(input).catch((e: unknown) => e);
     expect(annotationErrorMessage(error)).toContain('may have been saved');
+  });
+});
+
+describe('createFetchClient with non-object replies', () => {
+  it.each(['5', '"text"', 'true', 'null'])('rejects the reply %s without throwing a TypeError', async (body) => {
+    const client = createFetchClient({ endpoint: '/n', fetch: async () => new Response(body, { status: 200 }) });
+    await expect(client.list('/p', { fresh: false })).rejects.toBeInstanceOf(AnnotateError);
   });
 });

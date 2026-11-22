@@ -5,18 +5,13 @@
  * note that is reopened and closed again starts fresh.
  */
 
+import { browserLocalStorage } from './adapters/localStorage';
 import type { AnnotateStorage, AnnotationItem } from './types';
 
 export const DONE_PINS_STORAGE_KEY = 'ann:done-pins';
 
-/**
- * localStorage. Failures (private mode, blocked storage, a full quota) throw,
- * so the readers below can fall back.
- */
-export const defaultStorage: AnnotateStorage = {
-  get: (key) => window.localStorage.getItem(key),
-  set: (key, value) => window.localStorage.setItem(key, value),
-};
+/** localStorage. Reads and writes throw when the storage is unavailable, so the readers below can fall back. */
+export const defaultStorage: AnnotateStorage = browserLocalStorage;
 
 /** A done pin shows on this many page views, then stops showing on later ones. */
 export const DONE_PIN_MAX_VIEWS = 7;
@@ -46,7 +41,8 @@ function closedAtOf(key: string): number {
 
 function isEntry(value: unknown): value is DonePinEntry {
   if (typeof value !== 'object' || value === null) return false;
-  const { views, hidden } = value as Record<string, unknown>;
+  const views = 'views' in value ? value.views : undefined;
+  const hidden = 'hidden' in value ? value.hidden : undefined;
   return (
     typeof views === 'number' &&
     Number.isFinite(views) &&
