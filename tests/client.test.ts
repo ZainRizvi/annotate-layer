@@ -99,26 +99,38 @@ describe('error helpers', () => {
   });
 });
 
-describe('createFetchClient with a malformed success response', () => {
-  const client = (body: string) =>
-    createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => new Response(body, { status: 200 })) });
+describe('createFetchClient with a malformed success reply', () => {
+  const calls = {
+    list: (c: ReturnType<typeof createFetchClient>) => c.list('/p', { fresh: false }),
+    create: (c: ReturnType<typeof createFetchClient>) => c.create(input),
+    setStatus: (c: ReturnType<typeof createFetchClient>) => c.setStatus(7, 'done'),
+  };
+  const replies: Array<[string, string]> = [
+    ['not JSON', '<html>login</html>'],
+    ['an empty object', '{}'],
+    ['null', 'null'],
+    ['an array', '[]'],
+  ];
 
-  it('reports a body that is not JSON as an AnnotateError, not a SyntaxError', async () => {
-    const error = await client('<html>login</html>').list('/p', { fresh: false }).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(AnnotateError);
-    expect(annotationErrorMessage(error)).toContain('unexpected response');
+  it.each(Object.entries(calls).flatMap(([name]) => replies.map(([label, body]) => [name, label, body] as const)))(
+    '%s rejects %s with an http AnnotateError that names the status',
+    async (name, _label, body) => {
+      const client = createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => new Response(body, { status: 200 })) });
+      const error = await calls[name as keyof typeof calls](client).catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(AnnotateError);
+      expect((error as AnnotateError).kind).toBe('http');
+      expect(annotationErrorMessage(error)).toMatch(/^Annotations failed \(200\): unexpected response: /);
+    }
+  );
+
+  it('rejects a list whose items are not notes', async () => {
+    const client = createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => jsonResponse({ items: [null] })) });
+    await expect(client.list('/p', { fresh: false })).rejects.toBeInstanceOf(AnnotateError);
   });
 
-  it('reports a list reply without `items` as an AnnotateError', async () => {
-    const error = await client('{}').list('/p', { fresh: false }).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(AnnotateError);
-  });
-});
-
-describe('createFetchClient with a reply that has no note', () => {
-  it('rejects a create or status reply without a number', async () => {
+  it('tells the admin a create may have been saved', async () => {
     const client = createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => jsonResponse({ ok: true })) });
-    await expect(client.create(input)).rejects.toBeInstanceOf(AnnotateError);
-    await expect(client.setStatus(1, 'done')).rejects.toBeInstanceOf(AnnotateError);
+    const error = await client.create(input).catch((e: unknown) => e);
+    expect(annotationErrorMessage(error)).toContain('may have been saved');
   });
 });
