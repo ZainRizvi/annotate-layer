@@ -60,7 +60,7 @@ jobs:
           echo "Changes since $last: $kind"
           echo "kind=$kind" >> "$GITHUB_OUTPUT"
           if [ "$kind" = none ]; then
-            echo "::notice::Nothing since $last makes a release (scripts/release-type.ts)."
+            echo "::notice::Nothing since $last makes a release (scripts/release-type.main.ts)."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
