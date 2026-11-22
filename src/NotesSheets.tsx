@@ -1,3 +1,7 @@
+/**
+ * The sheets that show existing notes: a single note's detail and status controls, and the list of notes on the page.
+ */
+
 'use client';
 
 import React, { useRef, useState } from 'react';

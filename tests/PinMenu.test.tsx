@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { fakeClient, makeLayer } from './helpers';
+import PinMenu from '../src/PinMenu';
 
 const client = fakeClient();
 const Layer = makeLayer(client, { path: '/' });
@@ -133,5 +134,27 @@ describe('pin button menu (menu-button pattern)', () => {
     await userEvent.keyboard('{ArrowDown}{ArrowDown}{Enter}');
     expect(screen.getByRole('dialog', { name: 'Notes on this page' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+  });
+});
+
+describe('PinMenu focus on open', () => {
+  it('moves focus once, and later renders leave it where the user put it', () => {
+    const { rerender } = render(
+      <PinMenu id="m" label="Menu" initialFocus="first" onTabOut={() => {}}>
+        <button role="menuitem">One</button>
+        <button role="menuitem">Two</button>
+      </PinMenu>
+    );
+    expect(screen.getByRole('menuitem', { name: 'One' })).toHaveFocus();
+
+    screen.getByRole('menuitem', { name: 'One' }).blur();
+    expect(document.body).toHaveFocus();
+    rerender(
+      <PinMenu id="m" label="Menu" initialFocus="last" onTabOut={() => {}} error="Try again">
+        <button role="menuitem">One</button>
+        <button role="menuitem">Two</button>
+      </PinMenu>
+    );
+    expect(document.body).toHaveFocus();
   });
 });

@@ -1,3 +1,7 @@
+/**
+ * Hooks for the pick modes: tap anything while armed, and a modifier-key click or drag.
+ */
+
 'use client';
 
 import { useEffect, useRef } from 'react';

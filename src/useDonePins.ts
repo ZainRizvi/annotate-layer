@@ -1,3 +1,7 @@
+/**
+ * Hook that tracks which done notes still show a pin, from per-viewer view counts and hides kept in storage.
+ */
+
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';

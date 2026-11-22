@@ -1,3 +1,7 @@
+/**
+ * Hook that handles Escape for the layer in the capture phase, ahead of the app's own handlers.
+ */
+
 'use client';
 
 import { useEffect, useRef } from 'react';

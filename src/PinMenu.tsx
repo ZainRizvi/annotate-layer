@@ -1,3 +1,7 @@
+/**
+ * The pin button's menu, with menu-button keyboard behaviour (arrow keys, Home / End, Tab out, focus on open).
+ */
+
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -22,6 +26,10 @@ interface PinMenuProps {
 
 const ITEM_SELECTOR = '[role="menuitem"]:not([disabled]), [role="menuitemcheckbox"]:not([disabled])';
 
+/** The focusable items inside the menu list, in document order. */
+const menuItems = (list: HTMLElement | null): HTMLElement[] =>
+  Array.from(list?.querySelectorAll<HTMLElement>(ITEM_SELECTOR) ?? []);
+
 /**
  * The pin button's menu, following the menu-button pattern: items are out of
  * the tab order; ArrowUp / ArrowDown move through them and wrap, Home / End
@@ -30,15 +38,14 @@ const ITEM_SELECTOR = '[role="menuitem"]:not([disabled]), [role="menuitemcheckbo
  */
 export default function PinMenu({ id, label, initialFocus, onTabOut, error, children }: PinMenuProps) {
   const listRef = useRef<HTMLDivElement>(null);
-  const items = () => Array.from(listRef.current?.querySelectorAll<HTMLElement>(ITEM_SELECTOR) ?? []);
+  // Only the value at open counts: later renders (a count changing) must not move focus.
+  const initialFocusOnOpen = useRef(initialFocus);
 
   useEffect(() => {
-    const list = items();
-    const target =
-      initialFocus === 'first' ? list[0] : initialFocus === 'last' ? list[list.length - 1] : listRef.current;
+    const list = menuItems(listRef.current);
+    const focus = initialFocusOnOpen.current;
+    const target = focus === 'first' ? list[0] : focus === 'last' ? list[list.length - 1] : listRef.current;
     target?.focus({ preventScroll: true });
-    // Only on open: later renders (a count changing) must not move focus.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -47,9 +54,9 @@ export default function PinMenu({ id, label, initialFocus, onTabOut, error, chil
       onTabOut();
       return;
     }
-    const list = items();
+    const list = menuItems(listRef.current);
     if (list.length === 0) return;
-    const current = list.indexOf(document.activeElement as HTMLElement);
+    const current = list.findIndex((item) => item === document.activeElement);
     let next: number | null = null;
     if (e.key === 'ArrowDown') next = current < 0 ? 0 : (current + 1) % list.length;
     else if (e.key === 'ArrowUp') next = current < 0 ? list.length - 1 : (current - 1 + list.length) % list.length;

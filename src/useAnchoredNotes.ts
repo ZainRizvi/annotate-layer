@@ -1,3 +1,7 @@
+/**
+ * Hook that resolves each note's anchor to an element on the current page, again when the notes or the DOM change.
+ */
+
 'use client';
 
 import { useEffect, useState } from 'react';

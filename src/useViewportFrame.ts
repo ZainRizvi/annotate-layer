@@ -1,3 +1,7 @@
+/**
+ * Hook that re-measures overlays once per animation frame when the page scrolls, resizes or changes.
+ */
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';

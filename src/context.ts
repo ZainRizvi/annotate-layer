@@ -1,3 +1,7 @@
+/**
+ * Snapshots of the screen at pick time and the context object saved with a note.
+ */
+
 import { rectOf } from './drawing';
 import { buildAnchor } from './picker';
 import type { AnnotateHostContext, AnnotationAnchor, AnnotationContext, AnnotationRect } from './types';

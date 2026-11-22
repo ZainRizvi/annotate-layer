@@ -1,6 +1,8 @@
-import React from 'react';
+/**
+ * Small stroked 24x24 SVG icons, so the layer needs no icon library.
+ */
 
-/** Small stroked 24×24 icons, so the module needs no icon library. */
+import React from 'react';
 
 interface IconProps {
   size?: number;
