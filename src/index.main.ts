@@ -1,4 +1,8 @@
-/** The package entry: the annotation layer, its client and the types a host page uses. */
+/**
+ * The package entry: the annotation layer, its client and the types a host page uses.
+ * @actor Host developer: embeds the annotation layer in a page
+ * @runsIn browser
+ */
 export {
   FixFast,
   type FixFastOptions,

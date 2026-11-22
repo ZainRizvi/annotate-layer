@@ -2,7 +2,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: { index: 'src/index.ts', lazy: 'src/lazy.tsx' },
+  entry: { index: 'src/index.main.ts', lazy: 'src/lazy.main.tsx' },
   format: ['esm'],
   dts: true,
   sourcemap: true,
