@@ -1,6 +1,14 @@
+/**
+ * The REST client for the annotations contract (docs/contract.md): builds the requests, reads
+ * the replies into notes, and turns failures into `AnnotateError`s.
+ */
+
+import { fetchTransport, type FetchFunction } from './adapters/fetchTransport';
+import { fieldOf } from './fieldOf';
 import type {
   AnnotateClient,
   AnnotationItem,
+  AnnotationStatus,
   CreateAnnotationInput,
   CreatedAnnotation,
 } from './types';
@@ -33,7 +41,7 @@ export interface FetchClientOptions {
    * `POST <endpoint>` and `POST <endpoint>/<number>/status`.
    */
   endpoint: string;
-  fetch?: typeof fetch;
+  fetch?: FetchFunction;
   /** Defaults to `include`, so cookie sessions work across origins. */
   credentials?: RequestCredentials;
   /**
@@ -47,15 +55,17 @@ export interface FetchClientOptions {
 /** The response's `detail` as one line: a string, or the messages of a validation error list. */
 function detailOf(body: string): string {
   try {
-    const parsed = JSON.parse(body) as { detail?: unknown; message?: unknown };
-    if (typeof parsed.detail === 'string') return parsed.detail;
-    if (Array.isArray(parsed.detail)) {
-      return parsed.detail
-        .map((d) => (d && typeof d === 'object' && 'msg' in d ? String((d as { msg: unknown }).msg) : ''))
+    const parsed: unknown = JSON.parse(body);
+    const detail = fieldOf(parsed, 'detail');
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail
+        .map((d: unknown) => (typeof d === 'object' && d !== null && 'msg' in d ? String(d.msg) : ''))
         .filter(Boolean)
         .join('. ');
     }
-    if (typeof parsed.message === 'string') return parsed.message;
+    const message = fieldOf(parsed, 'message');
+    if (typeof message === 'string') return message;
   } catch {
     // Not JSON: fall through to the raw text.
   }
@@ -77,25 +87,61 @@ function unexpected(what: string, status: number): AnnotateError {
   return new AnnotateError('http', `unexpected response: ${what}`, status);
 }
 
-function hasNumber(body: unknown): body is { number: number } {
-  return typeof body === 'object' && body !== null && 'number' in body && typeof body.number === 'number';
-}
+const isString = (value: unknown): value is string => typeof value === 'string';
+const isNumber = (value: unknown): value is number => typeof value === 'number';
+const isStatus = (value: unknown): value is AnnotationStatus => value === 'open' || value === 'working' || value === 'done';
 
 /**
- * Whether `body` identifies a note by its `number`. That is the only field checked: the rest of a
- * note's shape is the server's contract (docs/contract.md), and a reply without a number is the
- * mark of a page or proxy answering instead of the server.
+ * Whether `body` has the required fields of an `AnnotationItem` (docs/contract.md). `type` and `author`
+ * may be `null` there, so null passes; any string passes as `type`, so a note whose type a newer server
+ * added still lists. Optional nested shapes (`closed_at`, the anchor's rect and drawing) are the readers' to
+ * validate; a reply that fails is the mark of a page or proxy answering instead of the server.
  */
 function isNote(body: unknown): body is AnnotationItem {
-  return hasNumber(body);
+  const type = fieldOf(body, 'type');
+  const author = fieldOf(body, 'author');
+  const anchor = fieldOf(body, 'anchor');
+  const closedAt = fieldOf(body, 'closed_at');
+  // `type` and `author` may be null or omitted, and `type` any string, though src/types.ts is narrower:
+  // that is what this client has always accepted, and the public types are not widened.
+  return (
+    isNumber(fieldOf(body, 'number')) &&
+    isString(fieldOf(body, 'html_url')) &&
+    isString(fieldOf(body, 'title')) &&
+    isString(fieldOf(body, 'text')) &&
+    (type == null || isString(type)) &&
+    isStatus(fieldOf(body, 'status')) &&
+    isString(fieldOf(anchor, 'path')) &&
+    isString(fieldOf(anchor, 'url')) &&
+    isString(fieldOf(anchor, 'css_path')) &&
+    isString(fieldOf(body, 'created_at')) &&
+    isString(fieldOf(body, 'updated_at')) &&
+    (closedAt === undefined || closedAt === null || isString(closedAt)) &&
+    (author == null || isString(author))
+  );
 }
 
+/** Whether `body` has the fields of a `CreatedAnnotation` (docs/contract.md). */
 function isCreated(body: unknown): body is CreatedAnnotation {
-  return hasNumber(body);
+  return (
+    isNumber(fieldOf(body, 'number')) &&
+    isString(fieldOf(body, 'html_url')) &&
+    isStatus(fieldOf(body, 'status')) &&
+    isString(fieldOf(body, 'created_at'))
+  );
 }
 
-function isItems(body: unknown): body is { items: AnnotationItem[] } {
-  return typeof body === 'object' && body !== null && 'items' in body && Array.isArray(body.items) && body.items.every(isNote);
+/** The list reply's notes, skipping any item that is not a note; undefined unless `items` is an array. */
+function notesOf(body: unknown): AnnotationItem[] | undefined {
+  const items = fieldOf(body, 'items');
+  return Array.isArray(items) ? items.filter(isNote) : undefined;
+}
+
+/** What one call adds to the request: the method, body and its own headers. */
+interface RequestSpec {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
 }
 
 /** Client for the annotations REST contract (see README.md). */
@@ -107,14 +153,16 @@ export function createFetchClient({
 }: FetchClientOptions): AnnotateClient {
   const base = endpoint.replace(/\/+$/, '');
 
-  async function request(url: string, init: RequestInit = {}): Promise<{ status: number; body: unknown }> {
+  const send = fetchImpl ?? fetchTransport;
+
+  async function request(url: string, init: RequestSpec = {}): Promise<{ status: number; body: unknown }> {
     // A failing `headers()` is the host's error, not a network one: let it through.
     const extra = headers ? await headers() : {};
     let response: Response;
     try {
-      response = await (fetchImpl ?? fetch)(url, {
+      response = await send(url, {
         ...init,
-        headers: { ...extra, ...(init.headers as Record<string, string> | undefined) },
+        headers: { ...extra, ...init.headers },
         credentials,
       });
     } catch (err) {
@@ -141,19 +189,20 @@ export function createFetchClient({
       const qs = new URLSearchParams({ path, state: 'all' });
       if (fresh) qs.set('fresh', '1');
       const { status, body } = await request(`${base}?${qs.toString()}`);
-      if (!isItems(body)) throw unexpected('the list has no `items` of notes', status);
-      return body.items;
+      const notes = notesOf(body);
+      if (notes === undefined) throw unexpected('the list has no `items` array', status);
+      return notes;
     },
     async create(payload: CreateAnnotationInput): Promise<CreatedAnnotation> {
       const { status, body } = await post(base, payload);
       if (!isCreated(body)) {
-        throw unexpected('the created note has no `number`; it may have been saved, so check the list before retrying', status);
+        throw unexpected('the created note lacks the fields the contract requires (`number`, `html_url`, `status`, `created_at`); it may have been saved, so check the list before retrying', status);
       }
       return body;
     },
     async setStatus(number: number, status: 'open' | 'done'): Promise<AnnotationItem> {
       const { status: code, body } = await post(`${base}/${number}/status`, { status });
-      if (!isNote(body)) throw unexpected('the updated note has no `number`', code);
+      if (!isNote(body)) throw unexpected('the updated note lacks the fields of a list item', code);
       return body;
     },
   };
