@@ -4,18 +4,14 @@
  */
 
 import { fetchTransport, type FetchFunction } from './adapters/fetchTransport';
-import {
-  ANNOTATION_TYPES,
-  type AnnotateClient,
-  type AnnotationAnchor,
-  type AnnotationItem,
-  type AnnotationRect,
-  type AnnotationStatus,
-  type AnnotationType,
-  type CreateAnnotationInput,
-  type CreatedAnnotation,
+import { fieldOf } from './fieldOf';
+import type {
+  AnnotateClient,
+  AnnotationItem,
+  AnnotationStatus,
+  CreateAnnotationInput,
+  CreatedAnnotation,
 } from './types';
-import { isDrawing } from './drawing';
 
 export type AnnotateErrorKind = 'not_configured' | 'not_found' | 'http' | 'network';
 
@@ -56,13 +52,6 @@ export interface FetchClientOptions {
   headers?: () => Record<string, string> | Promise<Record<string, string>>;
 }
 
-/** `body[key]`, or undefined when `body` is not an object or lacks the key. */
-function fieldOf(body: unknown, key: string): unknown {
-  return typeof body === 'object' && body !== null
-    ? Object.entries(body).find(([name]) => name === key)?.[1]
-    : undefined;
-}
-
 /** The response's `detail` as one line: a string, or the messages of a validation error list. */
 function detailOf(body: string): string {
   try {
@@ -98,123 +87,52 @@ function unexpected(what: string, status: number): AnnotateError {
   return new AnnotateError('http', `unexpected response: ${what}`, status);
 }
 
-const STATUSES: readonly AnnotationStatus[] = ['open', 'working', 'done'];
-
-const stringOf = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
-const numberOf = (value: unknown): number | undefined =>
-  typeof value === 'number' && Number.isFinite(value) ? value : undefined;
-const statusOf = (value: unknown): AnnotationStatus | undefined => STATUSES.find((status) => status === value);
-const typeOf = (value: unknown): AnnotationType | null => ANNOTATION_TYPES.find((type) => type === value) ?? null;
-
-/** Marks an optional field that is present but has the wrong type. */
-const wrongType = Symbol('wrongType');
-
-/** What `read` makes of a present field; undefined for an absent or `null` one (the contract allows both). */
-function optional<T>(value: unknown, read: (v: unknown) => T | undefined): T | undefined | typeof wrongType {
-  if (value === undefined || value === null) return undefined;
-  return read(value) ?? wrongType;
-}
-
-function rectOf(value: unknown): AnnotationRect | undefined {
-  const [x, y, w, h] = ['x', 'y', 'w', 'h'].map((key) => numberOf(fieldOf(value, key)));
-  return x === undefined || y === undefined || w === undefined || h === undefined ? undefined : { x, y, w, h };
-}
-
-function stringsOf(value: unknown): string[] | undefined {
-  return Array.isArray(value) && value.every((s: unknown) => typeof s === 'string') ? value.map(String) : undefined;
-}
+const isString = (value: unknown): value is string => typeof value === 'string';
+const isNumber = (value: unknown): value is number => typeof value === 'number';
+const isStatus = (value: unknown): value is AnnotationStatus => value === 'open' || value === 'working' || value === 'done';
 
 /**
- * The anchor stored with a note: `path`, `url` and `css_path` are required, the rest may be
- * absent or `null` (docs/contract.md) and is left out then. Undefined when a field has the wrong type.
+ * Whether `body` has the required fields of an `AnnotationItem` (docs/contract.md). `type` and `author`
+ * may be `null` there, so null passes; any string passes as `type`, so a note whose type a newer server
+ * added still lists. Optional nested shapes (`closed_at`, the anchor's rect and drawing) are the readers' to
+ * validate; a reply that fails is the mark of a page or proxy answering instead of the server.
  */
-function anchorOf(value: unknown): AnnotationAnchor | undefined {
-  const path = stringOf(fieldOf(value, 'path'));
-  const url = stringOf(fieldOf(value, 'url'));
-  const cssPath = stringOf(fieldOf(value, 'css_path'));
-  const annId = optional(fieldOf(value, 'ann_id'), stringOf);
-  const snippet = optional(fieldOf(value, 'text_snippet'), stringOf);
-  const rect = optional(fieldOf(value, 'rect'), rectOf);
-  const drawingField = fieldOf(value, 'drawing');
-  const ancestorsField = fieldOf(value, 'ancestor_snippets');
-  const ancestors = optional(ancestorsField, stringsOf);
-  if (path === undefined || url === undefined || cssPath === undefined) return undefined;
-  if (annId === wrongType || snippet === wrongType || rect === wrongType || ancestors === wrongType) return undefined;
-  if (drawingField !== undefined && drawingField !== null && !isDrawing(drawingField)) return undefined;
-  return {
-    path,
-    url,
-    css_path: cssPath,
-    ...(annId === undefined ? {} : { ann_id: annId }),
-    ...(snippet === undefined ? {} : { text_snippet: snippet }),
-    ...(ancestorsField === undefined ? {} : { ancestor_snippets: ancestors ?? null }),
-    ...(rect === undefined ? {} : { rect }),
-    ...(isDrawing(drawingField) ? { drawing: drawingField } : {}),
-  };
+function isNote(body: unknown): body is AnnotationItem {
+  const type = fieldOf(body, 'type');
+  const author = fieldOf(body, 'author');
+  const anchor = fieldOf(body, 'anchor');
+  const closedAt = fieldOf(body, 'closed_at');
+  return (
+    isNumber(fieldOf(body, 'number')) &&
+    isString(fieldOf(body, 'html_url')) &&
+    isString(fieldOf(body, 'title')) &&
+    isString(fieldOf(body, 'text')) &&
+    (type === null || isString(type)) &&
+    isStatus(fieldOf(body, 'status')) &&
+    isString(fieldOf(anchor, 'path')) &&
+    isString(fieldOf(anchor, 'url')) &&
+    isString(fieldOf(anchor, 'css_path')) &&
+    isString(fieldOf(body, 'created_at')) &&
+    isString(fieldOf(body, 'updated_at')) &&
+    (closedAt === undefined || closedAt === null || isString(closedAt)) &&
+    (author === null || isString(author))
+  );
 }
 
-/**
- * A note in the list-item shape (docs/contract.md), or undefined when a required field is
- * missing or mistyped: that is the mark of a page or proxy answering instead of the server.
- * `type` and `author` may be `null` there: an unknown type reads as no type, no author as ''.
- */
-function noteOf(body: unknown): AnnotationItem | undefined {
-  const number = numberOf(fieldOf(body, 'number'));
-  const htmlUrl = stringOf(fieldOf(body, 'html_url'));
-  const title = stringOf(fieldOf(body, 'title'));
-  const text = stringOf(fieldOf(body, 'text'));
-  const status = statusOf(fieldOf(body, 'status'));
-  const anchor = anchorOf(fieldOf(body, 'anchor'));
-  const createdAt = stringOf(fieldOf(body, 'created_at'));
-  const updatedAt = stringOf(fieldOf(body, 'updated_at'));
-  const closedAt = optional(fieldOf(body, 'closed_at'), stringOf);
-  const author = optional(fieldOf(body, 'author'), stringOf);
-  if (
-    number === undefined ||
-    htmlUrl === undefined ||
-    title === undefined ||
-    text === undefined ||
-    status === undefined ||
-    anchor === undefined ||
-    createdAt === undefined ||
-    updatedAt === undefined ||
-    closedAt === wrongType ||
-    author === wrongType
-  ) {
-    return undefined;
-  }
-  return {
-    number,
-    html_url: htmlUrl,
-    title,
-    text,
-    type: typeOf(fieldOf(body, 'type')),
-    status,
-    anchor,
-    created_at: createdAt,
-    updated_at: updatedAt,
-    ...(closedAt === undefined ? {} : { closed_at: closedAt }),
-    author: author ?? '',
-  };
+/** Whether `body` has the fields of a `CreatedAnnotation` (docs/contract.md). */
+function isCreated(body: unknown): body is CreatedAnnotation {
+  return (
+    isNumber(fieldOf(body, 'number')) &&
+    isString(fieldOf(body, 'html_url')) &&
+    isStatus(fieldOf(body, 'status')) &&
+    isString(fieldOf(body, 'created_at'))
+  );
 }
 
-/** The reply to creating a note (docs/contract.md), or undefined when a field is missing or mistyped. */
-function createdOf(body: unknown): CreatedAnnotation | undefined {
-  const number = numberOf(fieldOf(body, 'number'));
-  const htmlUrl = stringOf(fieldOf(body, 'html_url'));
-  const status = statusOf(fieldOf(body, 'status'));
-  const createdAt = stringOf(fieldOf(body, 'created_at'));
-  return number === undefined || htmlUrl === undefined || status === undefined || createdAt === undefined
-    ? undefined
-    : { number, html_url: htmlUrl, status, created_at: createdAt };
-}
-
-/** The notes of a list reply, or undefined unless it has an `items` array of valid notes. */
+/** The list reply's notes, skipping any item that is not a note; undefined unless `items` is an array. */
 function notesOf(body: unknown): AnnotationItem[] | undefined {
   const items = fieldOf(body, 'items');
-  if (!Array.isArray(items)) return undefined;
-  const notes = items.flatMap((item: unknown) => noteOf(item) ?? []);
-  return notes.length === items.length ? notes : undefined;
+  return Array.isArray(items) ? items.filter(isNote) : undefined;
 }
 
 /** What one call adds to the request: the method, body and its own headers. */
@@ -270,22 +188,20 @@ export function createFetchClient({
       if (fresh) qs.set('fresh', '1');
       const { status, body } = await request(`${base}?${qs.toString()}`);
       const notes = notesOf(body);
-      if (notes === undefined) throw unexpected('the list has no `items` of notes', status);
+      if (notes === undefined) throw unexpected('the list has no `items` array', status);
       return notes;
     },
     async create(payload: CreateAnnotationInput): Promise<CreatedAnnotation> {
       const { status, body } = await post(base, payload);
-      const created = createdOf(body);
-      if (created === undefined) {
+      if (!isCreated(body)) {
         throw unexpected('the created note lacks the fields the contract requires (`number`, `html_url`, `status`, `created_at`); it may have been saved, so check the list before retrying', status);
       }
-      return created;
+      return body;
     },
     async setStatus(number: number, status: 'open' | 'done'): Promise<AnnotationItem> {
       const { status: code, body } = await post(`${base}/${number}/status`, { status });
-      const note = noteOf(body);
-      if (note === undefined) throw unexpected('the updated note is not a note (it needs a `number` and the fields of a list item)', code);
-      return note;
+      if (!isNote(body)) throw unexpected('the updated note lacks the fields of a list item', code);
+      return body;
     },
   };
 }

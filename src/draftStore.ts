@@ -6,9 +6,10 @@
  */
 
 import { sessionDrafts } from './adapters/sessionStorage';
-import { ANNOTATION_TYPES, type AnnotationAnchor, type AnnotationDrawing, type AnnotationRect, type AnnotationType } from './types';
+import { ANNOTATION_TYPES, type AnnotationAnchor, type AnnotationDrawing, type AnnotationType } from './types';
 import { cssPath, findAnchor, isInLayerUI, snippetsCompatible, UNIQUE_ATTR } from './picker';
 import { isDrawing } from './drawing';
+import { fieldOf } from './fieldOf';
 
 export interface NoteDraft {
   text: string;
@@ -33,33 +34,14 @@ function isAnnotationType(value: unknown): value is AnnotationType {
   return ANNOTATION_TYPES.some((type) => type === value);
 }
 
-/** `value[key]`, or undefined when `value` is not an object or lacks the key. */
-function fieldOf(value: unknown, key: string): unknown {
-  return typeof value === 'object' && value !== null
-    ? Object.entries(value).find(([name]) => name === key)?.[1]
-    : undefined;
-}
-
-const isAbsent = (value: unknown): boolean => value === undefined;
-const isString = (value: unknown): value is string => typeof value === 'string';
-
-function isRect(value: unknown): value is AnnotationRect {
-  return ['x', 'y', 'w', 'h'].every((key) => Number.isFinite(fieldOf(value, key)));
-}
-
 function isAnchor(value: unknown): value is AnnotationAnchor {
   const ancestors = fieldOf(value, 'ancestor_snippets');
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    isString(fieldOf(value, 'path')) &&
-    isString(fieldOf(value, 'url')) &&
-    isString(fieldOf(value, 'css_path')) &&
-    (isAbsent(fieldOf(value, 'ann_id')) || isString(fieldOf(value, 'ann_id'))) &&
-    (isAbsent(fieldOf(value, 'text_snippet')) || isString(fieldOf(value, 'text_snippet'))) &&
-    (isAbsent(ancestors) || ancestors === null || (Array.isArray(ancestors) && ancestors.every(isString))) &&
-    (isAbsent(fieldOf(value, 'rect')) || isRect(fieldOf(value, 'rect'))) &&
-    (isAbsent(fieldOf(value, 'drawing')) || isDrawing(fieldOf(value, 'drawing')))
+    typeof fieldOf(value, 'css_path') === 'string' &&
+    typeof fieldOf(value, 'path') === 'string' &&
+    (ancestors === undefined ||
+      ancestors === null ||
+      (Array.isArray(ancestors) && ancestors.every((s: unknown) => typeof s === 'string')))
   );
 }
 
@@ -115,8 +97,8 @@ function draftFor(raw: string | null, snippet: string, el: Element): NoteDraft |
     const storedSnippet = fieldOf(parsed, 'snippet');
     const anchor = fieldOf(parsed, 'anchor');
     const drawing = fieldOf(parsed, 'drawing');
-    if (!isString(text) || !isString(type)) return null;
-    if (!isString(storedSnippet) || !snippetsCompatible(storedSnippet, snippet)) return null;
+    if (typeof text !== 'string' || typeof type !== 'string') return null;
+    if (typeof storedSnippet !== 'string' || !snippetsCompatible(storedSnippet, snippet)) return null;
     if (!draftBelongsTo(anchor, el, storedSnippet !== snippet)) return null;
     return {
       text,

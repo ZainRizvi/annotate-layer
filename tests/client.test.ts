@@ -108,7 +108,14 @@ describe('createFetchClient replies', () => {
   const clientFor = (reply: unknown) =>
     createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => jsonResponse(reply)) });
 
-  it('returns a list item as the contract shapes it, with null fields read as absent', async () => {
+  it('returns the server notes as sent, extra fields included', async () => {
+    const withExtra = { ...note, labels: ['ui'], anchor: { ...note.anchor, extra: 1 } };
+    const [item] = await clientFor({ items: [withExtra] }).list('/pricing', { fresh: false });
+    expect(item).toEqual(withExtra);
+    await expect(clientFor(withExtra).setStatus(7, 'done')).resolves.toEqual(withExtra);
+  });
+
+  it('passes null fields through unchanged', async () => {
     const wire = {
       ...note,
       type: null,
@@ -117,48 +124,25 @@ describe('createFetchClient replies', () => {
       anchor: { ...note.anchor, ann_id: null, text_snippet: null, ancestor_snippets: null, rect: null, drawing: null },
     };
     const [item] = await clientFor({ items: [wire] }).list('/pricing', { fresh: false });
-    expect(item).toEqual({
-      ...note,
-      closed_at: undefined,
-      type: null,
-      author: '',
-      anchor: { ...note.anchor, ancestor_snippets: null },
-    });
+    expect(item).toEqual(wire);
   });
 
-  it('keeps the optional anchor fields a server stored', async () => {
-    const anchor = {
-      ...note.anchor,
-      ann_id: 'cta',
-      text_snippet: 'Buy',
-      ancestor_snippets: ['Plan'],
-      rect: { x: 1, y: 2, w: 3, h: 4 },
-      drawing: { strokes: [[[0, 0]]], bbox: { x: 0, y: 0, w: 0, h: 0 } },
-    };
-    const [item] = await clientFor({ items: [{ ...note, anchor }] }).list('/pricing', { fresh: false });
-    expect(item.anchor).toEqual(anchor);
+  it('skips a malformed item and returns the others', async () => {
+    const second = { ...note, number: 8 };
+    const items = [note, { ...note, html_url: undefined }, null, { ...note, status: 'archived' }, second];
+    await expect(clientFor({ items }).list('/p', { fresh: false })).resolves.toEqual([note, second]);
   });
 
-  it('reads a type the layer does not offer as no type', async () => {
-    const [item] = await clientFor({ items: [{ ...note, type: 'rant' }] }).list('/pricing', { fresh: false });
-    expect(item.type).toBeNull();
+  it('rejects a list reply whose items is not an array', async () => {
+    await expect(clientFor({ items: {} }).list('/p', { fresh: false })).rejects.toBeInstanceOf(AnnotateError);
   });
 
-  it.each([
-    ['no html_url', { ...note, html_url: undefined }],
-    ['a string number', { ...note, number: '7' }],
-    ['an unknown status', { ...note, status: 'archived' }],
-    ['no anchor', { ...note, anchor: undefined }],
-    ['an anchor without css_path', { ...note, anchor: { path: '/p', url: 'u' } }],
-    ['a rect with a missing side', { ...note, anchor: { ...note.anchor, rect: { x: 1, y: 2, w: 3 } } }],
-    ['a numeric closed_at', { ...note, closed_at: 5 }],
-  ])('rejects a note with %s', async (_label, bad) => {
-    await expect(clientFor({ items: [bad] }).list('/p', { fresh: false })).rejects.toBeInstanceOf(AnnotateError);
-    await expect(clientFor(bad).setStatus(7, 'done')).rejects.toBeInstanceOf(AnnotateError);
+  it('rejects an updated note missing required fields', async () => {
+    await expect(clientFor({ ...note, anchor: undefined }).setStatus(7, 'done')).rejects.toBeInstanceOf(AnnotateError);
   });
 
-  it('rejects a created reply missing a field the contract requires', async () => {
-    const created = { number: 7, html_url: 'h', status: 'open', created_at: 't' };
+  it('returns a created reply as sent and rejects one missing a field the contract requires', async () => {
+    const created = { number: 7, html_url: 'h', status: 'open', created_at: 't', extra: true };
     await expect(clientFor(created).create(input)).resolves.toEqual(created);
     await expect(clientFor({ number: 7 }).create(input)).rejects.toBeInstanceOf(AnnotateError);
   });
@@ -209,10 +193,10 @@ describe('createFetchClient with a malformed success reply', () => {
     }
   );
 
-  it('rejects a list whose items are not notes', async () => {
+  it('lists no notes when every item is malformed', async () => {
     for (const items of [[null], [{}]]) {
       const client = createFetchClient({ endpoint: '/notes', fetch: vi.fn(async () => jsonResponse({ items })) });
-      await expect(client.list('/p', { fresh: false })).rejects.toBeInstanceOf(AnnotateError);
+      await expect(client.list('/p', { fresh: false })).resolves.toEqual([]);
     }
   });
 
