@@ -387,6 +387,13 @@ describe('donePins storage', () => {
     expect(loadDonePins(mapStorage({ [DONE_PINS_STORAGE_KEY]: value }).storage)).toEqual({ 'a@x': { views: 2 } });
   });
 
+  it('keeps a stored `__proto__` key as data instead of setting the prototype', () => {
+    const value = '{"__proto__": {"views": 3}, "a@x": {"views": 1}}';
+    const entries = loadDonePins(mapStorage({ [DONE_PINS_STORAGE_KEY]: value }).storage);
+    expect(Object.getPrototypeOf(entries)).toBe(Object.prototype);
+    expect(Object.keys(entries ?? {})).toEqual(['__proto__', 'a@x']);
+  });
+
   it('prunes entries for notes closed more than 8 days ago, and unparseable keys', () => {
     const recent = new Date(now - DONE_PIN_KEEP_MS + 1000).toISOString();
     const old = new Date(now - DONE_PIN_KEEP_MS - 1000).toISOString();
