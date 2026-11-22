@@ -3,6 +3,6 @@
 /** `value[key]`, or undefined when `value` is not an object or lacks the key. */
 export function fieldOf(value: unknown, key: string): unknown {
   return typeof value === 'object' && value !== null
-    ? Object.entries(value).find(([name]) => name === key)?.[1]
+    ? Object.getOwnPropertyDescriptor(value, key)?.value
     : undefined;
 }

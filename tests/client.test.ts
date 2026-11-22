@@ -127,6 +127,12 @@ describe('createFetchClient replies', () => {
     expect(item).toEqual(wire);
   });
 
+  it('accepts a note with type and author omitted, and one with status working', async () => {
+    const bare = { ...note, type: undefined, author: undefined };
+    const working = { ...note, number: 9, status: 'working' };
+    await expect(clientFor({ items: [bare, working] }).list('/p', { fresh: false })).resolves.toEqual([bare, working]);
+  });
+
   it('skips a malformed item and returns the others', async () => {
     const second = { ...note, number: 8 };
     const items = [note, { ...note, html_url: undefined }, null, { ...note, status: 'archived' }, second];
@@ -147,12 +153,13 @@ describe('createFetchClient replies', () => {
     await expect(clientFor({ number: 7 }).create(input)).rejects.toBeInstanceOf(AnnotateError);
   });
 
-  it('uses the global fetch when no fetch option is given', async () => {
-    const global = vi.fn(async () => jsonResponse({ items: [] }));
-    vi.stubGlobal('fetch', global);
+  it('looks the global fetch up at call time', async () => {
+    const client = createFetchClient({ endpoint: '/notes' });
+    const later = vi.fn(async () => jsonResponse({ items: [] }));
+    vi.stubGlobal('fetch', later);
     try {
-      await createFetchClient({ endpoint: '/notes' }).list('/p', { fresh: false });
-      expect(global).toHaveBeenCalledOnce();
+      await client.list('/p', { fresh: false });
+      expect(later).toHaveBeenCalledOnce();
     } finally {
       vi.unstubAllGlobals();
     }

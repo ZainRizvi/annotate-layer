@@ -102,12 +102,14 @@ function isNote(body: unknown): body is AnnotationItem {
   const author = fieldOf(body, 'author');
   const anchor = fieldOf(body, 'anchor');
   const closedAt = fieldOf(body, 'closed_at');
+  // `type` and `author` may be null or omitted, and `type` any string, though src/types.ts is narrower:
+  // that is what this client has always accepted, and the public types are not widened.
   return (
     isNumber(fieldOf(body, 'number')) &&
     isString(fieldOf(body, 'html_url')) &&
     isString(fieldOf(body, 'title')) &&
     isString(fieldOf(body, 'text')) &&
-    (type === null || isString(type)) &&
+    (type == null || isString(type)) &&
     isStatus(fieldOf(body, 'status')) &&
     isString(fieldOf(anchor, 'path')) &&
     isString(fieldOf(anchor, 'url')) &&
@@ -115,7 +117,7 @@ function isNote(body: unknown): body is AnnotationItem {
     isString(fieldOf(body, 'created_at')) &&
     isString(fieldOf(body, 'updated_at')) &&
     (closedAt === undefined || closedAt === null || isString(closedAt)) &&
-    (author === null || isString(author))
+    (author == null || isString(author))
   );
 }
 
