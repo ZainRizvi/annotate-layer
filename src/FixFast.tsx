@@ -173,7 +173,7 @@ export function FixFast({
   storage = defaultStorage,
 }: FixFastProps) {
   const client = useMemo(
-    () => hostClient ?? createFetchClient({ endpoint: endpoint as string }),
+    () => hostClient ?? createFetchClient({ endpoint }),
     [hostClient, endpoint]
   );
   const { theme } = context();

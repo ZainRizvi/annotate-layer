@@ -75,11 +75,8 @@ export function loadDonePins(storage: AnnotateStorage): DonePinEntries | null {
     return {};
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {};
-  const entries: Record<string, DonePinEntry> = {};
-  for (const [key, value] of Object.entries(parsed)) {
-    if (isEntry(value)) entries[key] = value;
-  }
-  return entries;
+  // fromEntries defines each key as its own property, so a stored key named `__proto__` stays data.
+  return Object.fromEntries(Object.entries(parsed).filter((entry): entry is [string, DonePinEntry] => isEntry(entry[1])));
 }
 
 /** Without entries for notes closed more than DONE_PIN_KEEP_MS before `now`. */
