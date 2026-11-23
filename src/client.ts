@@ -90,34 +90,32 @@ function unexpected(what: string, status: number): AnnotateError {
 const isString = (value: unknown): value is string => typeof value === 'string';
 const isNumber = (value: unknown): value is number => typeof value === 'number';
 const isStatus = (value: unknown): value is AnnotationStatus => value === 'open' || value === 'working' || value === 'done';
+const isOptionalString = (value: unknown): boolean => value == null || isString(value);
 
 /**
- * Whether `body` has the required fields of an `AnnotationItem` (docs/contract.md). `type` and `author`
- * may be `null` there, so null passes; any string passes as `type`, so a note whose type a newer server
- * added still lists. Optional nested shapes (`closed_at`, the anchor's rect and drawing) are the readers' to
- * validate; a reply that fails is the mark of a page or proxy answering instead of the server.
+ * Whether `body` has the required fields of an `AnnotationItem` (docs/contract.md). `type`, `author`,
+ * `closed_at` and the anchor's values other than `path` may be `null` or omitted ("Missing values may be
+ * `null`"), so they pass; any string passes as `type`, so a note whose type a newer server added still
+ * lists. Optional nested shapes (the anchor's rect and drawing) are the readers' to validate; a reply that
+ * fails is the mark of a page or proxy answering instead of the server. src/types.ts is narrower than what
+ * passes here, and the public types are not widened.
  */
 function isNote(body: unknown): body is AnnotationItem {
-  const type = fieldOf(body, 'type');
-  const author = fieldOf(body, 'author');
   const anchor = fieldOf(body, 'anchor');
-  const closedAt = fieldOf(body, 'closed_at');
-  // `type` and `author` may be null or omitted, and `type` any string, though src/types.ts is narrower:
-  // that is what this client has always accepted, and the public types are not widened.
   return (
     isNumber(fieldOf(body, 'number')) &&
     isString(fieldOf(body, 'html_url')) &&
     isString(fieldOf(body, 'title')) &&
     isString(fieldOf(body, 'text')) &&
-    (type == null || isString(type)) &&
+    isOptionalString(fieldOf(body, 'type')) &&
     isStatus(fieldOf(body, 'status')) &&
     isString(fieldOf(anchor, 'path')) &&
-    isString(fieldOf(anchor, 'url')) &&
-    isString(fieldOf(anchor, 'css_path')) &&
+    isOptionalString(fieldOf(anchor, 'url')) &&
+    isOptionalString(fieldOf(anchor, 'css_path')) &&
     isString(fieldOf(body, 'created_at')) &&
     isString(fieldOf(body, 'updated_at')) &&
-    (closedAt === undefined || closedAt === null || isString(closedAt)) &&
-    (author == null || isString(author))
+    isOptionalString(fieldOf(body, 'closed_at')) &&
+    isOptionalString(fieldOf(body, 'author'))
   );
 }
 
