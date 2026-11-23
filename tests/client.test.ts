@@ -121,10 +121,30 @@ describe('createFetchClient replies', () => {
       type: null,
       closed_at: null,
       author: null,
-      anchor: { ...note.anchor, ann_id: null, text_snippet: null, ancestor_snippets: null, rect: null, drawing: null },
+      anchor: {
+        ...note.anchor,
+        url: null,
+        ann_id: null,
+        css_path: null,
+        text_snippet: null,
+        ancestor_snippets: null,
+        rect: null,
+        drawing: null,
+      },
     };
     const [item] = await clientFor({ items: [wire] }).list('/pricing', { fresh: false });
     expect(item).toEqual(wire);
+    await expect(clientFor(wire).setStatus(7, 'done')).resolves.toEqual(wire);
+  });
+
+  it('accepts an anchor with only its path', async () => {
+    const pathOnly = { ...note, anchor: { path: '/pricing' } };
+    await expect(clientFor({ items: [pathOnly] }).list('/pricing', { fresh: false })).resolves.toEqual([pathOnly]);
+  });
+
+  it.each(['url', 'css_path'])('skips a note whose anchor %s is neither a string nor null', async (key) => {
+    const bad = { ...note, anchor: { ...note.anchor, [key]: 5 } };
+    await expect(clientFor({ items: [bad, note] }).list('/pricing', { fresh: false })).resolves.toEqual([note]);
   });
 
   it('accepts a note with type and author omitted, and one with status working', async () => {
