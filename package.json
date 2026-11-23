@@ -1,6 +1,6 @@
 {
   "name": "fixfast",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A React overlay that lets authorized reviewers point at any part of a live site, draw on it and leave a note that the host's backend stores (for example as a GitHub issue).",
   "license": "MIT",
   "type": "module",
