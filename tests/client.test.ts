@@ -142,6 +142,11 @@ describe('createFetchClient replies', () => {
     await expect(clientFor({ items: [pathOnly] }).list('/pricing', { fresh: false })).resolves.toEqual([pathOnly]);
   });
 
+  it.each(['url', 'css_path'])('skips a note whose anchor %s is neither a string nor null', async (key) => {
+    const bad = { ...note, anchor: { ...note.anchor, [key]: 5 } };
+    await expect(clientFor({ items: [bad, note] }).list('/pricing', { fresh: false })).resolves.toEqual([note]);
+  });
+
   it('accepts a note with type and author omitted, and one with status working', async () => {
     const bare = { ...note, type: undefined, author: undefined };
     const working = { ...note, number: 9, status: 'working' };
