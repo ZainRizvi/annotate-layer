@@ -14,11 +14,14 @@ import type {
   AnnotateLongPress,
   AnnotateStorage,
   AnnotationItem,
+  CaptureHandle,
   CreatedAnnotation,
+  NoteCapture,
 } from './types';
 import { annChain, LAYER_UI_ATTR, pageElementAt, resolvePickTarget, textSnippet } from './picker';
 import { useLongPress, type StrokeSink } from './useLongPress';
 import { snapshotPick, type PickSnapshot } from './context';
+import { beginCapture } from './captureHandle';
 import {
   drawingToPixels,
   isDrawing,
@@ -73,6 +76,8 @@ export interface FixFastOptions {
   longPress?: AnnotateLongPress;
   /** Where done-pin views and hides are kept. Defaults to localStorage. */
   storage?: AnnotateStorage;
+  /** Recorded alongside each note: begun at pick time, committed once the note is saved. */
+  capture?: NoteCapture;
 }
 const FLASH_MS = 1400;
 const TOAST_MS = 5000;
@@ -104,6 +109,8 @@ type SheetState =
       /** The picked element's text at open; a stored draft must match it. */
       draftSnippet: string;
       snapshot: PickSnapshot;
+      /** Begun at pick time; settles at most once, by commit or discard. */
+      capture: CaptureHandle;
       /** Marks drawn before the pick, in viewport pixels at pick time. */
       strokes?: PixelStroke[];
       /** Strokes left out to stay within the storage limits. */
@@ -113,6 +120,11 @@ type SheetState =
   /** `numbers`: only one element's notes, opened from its "+N" pin. */
   | { kind: 'list'; numbers?: number[] }
   | null;
+
+/** Releases a new-note sheet's capture; a no-op when it already settled. */
+function discardPendingCapture(sheet: SheetState): void {
+  if (sheet?.kind === 'new') sheet.capture.discard();
+}
 
 function rectStyle(el: Element | null): React.CSSProperties | null {
   if (!el || !el.isConnected) return null;
@@ -180,6 +192,7 @@ export function FixFast({
   context,
   longPress,
   storage = defaultStorage,
+  capture,
 }: FixFastProps) {
   const client = useMemo(
     () => hostClient ?? createFetchClient({ endpoint }),
@@ -190,6 +203,11 @@ export function FixFast({
   useEffect(() => {
     clientRef.current = client;
   }, [client]);
+
+  const captureRef = useRef(capture);
+  useEffect(() => {
+    captureRef.current = capture;
+  }, [capture]);
 
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [notes, setNotes] = useState<AnnotationItem[]>([]);
@@ -326,6 +344,7 @@ export function FixFast({
 
   /** Every sheet opens from a clean slate: no prompt, draft, pick mode or menu. */
   const resetForSheet = useCallback(() => {
+    discardPendingCapture(sheetRef.current);
     setArmed(false);
     setMenuOpen(false);
     setHovered(null);
@@ -342,6 +361,7 @@ export function FixFast({
       const chain = annChain(target);
       // Before any state changes: the sheet and keyboard must not show in it.
       const snapshot = snapshotPick(chain, path, window.location.href);
+      const captureHandle = beginCapture(captureRef.current);
       const snippet = textSnippet(chain[0]);
       const { key, draft: storedDraft } = resolveDraft(path, chain[0], snippet);
       // Without fresh marks, a draft's marks come back with its text, placed
@@ -355,6 +375,7 @@ export function FixFast({
       openIdRef.current += 1;
       setSheet({
         kind: 'new',
+        capture: captureHandle,
         openId: openIdRef.current,
         chain,
         selected: 0,
@@ -418,6 +439,7 @@ export function FixFast({
   useModifierPick(!armed && !sheetOpen && !drawing, openNewNote, setHovered, strokeSink);
 
   const closeSheet = useCallback(() => {
+    discardPendingCapture(sheetRef.current);
     setSheet(null);
     setDraft('');
     setDiscardPrompt(false);
@@ -596,7 +618,10 @@ export function FixFast({
     // Close only the sheet that made the request: by now the admin may have
     // opened a pin's note, picked another element, or reopened this one.
     const current = sheetRef.current;
-    if (current?.kind === 'new' && current.openId === savedOpenId) closeSheet();
+    if (current?.kind === 'new' && current.openId === savedOpenId) {
+      void current.capture.commit(created);
+      closeSheet();
+    }
     showToast({ text: 'Saved as', link: { href: created.html_url, label: `#${created.number}` } });
     refreshAfterWrite(savedPath);
   };

@@ -31,6 +31,8 @@ export type {
   AnnotationStatus,
   AnnotationStroke,
   AnnotationType,
+  CaptureHandle,
   CreateAnnotationInput,
   CreatedAnnotation,
+  NoteCapture,
 } from './types';

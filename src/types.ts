@@ -112,3 +112,17 @@ export interface AnnotateStorage {
   get(key: string): string | null;
   set(key: string, value: string): void;
 }
+
+/** Held by the layer from the moment an element is picked until its note is saved or dropped. */
+export interface CaptureHandle {
+  /** The note was saved; settle whatever `begin` started. */
+  commit(created: CreatedAnnotation): Promise<void>;
+  /** The draft was dropped; release whatever `begin` started. */
+  discard(): void;
+}
+
+/** An optional extra recorded for each note, such as a screenshot of the picked view. */
+export interface NoteCapture {
+  /** Called at pick time, before the sheet opens. Must not throw. */
+  begin(): CaptureHandle;
+}
